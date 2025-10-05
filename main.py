@@ -749,6 +749,43 @@ WIN_SCORE = SETTINGS.win_score
 SPEED_INCREASE_PER_HIT = SETTINGS.speed_increase_per_hit
 MAX_BALL_SPEED = SETTINGS.max_ball_speed
 
+# ============================================================================
+# POWER-UP SYSTEM / SISTEMA DE POWER-UPS
+# Phase 2 Feature: Collectible bonuses with timed effects
+# Característica Fase 2: Bonificaciones coleccionables con efectos temporales
+# ============================================================================
+
+@dataclass
+class PowerUp:
+    """
+    Collectible power-up with visual effects.
+    Power-up coleccionable con efectos visuales.
+    """
+    type: str  # 'big_paddle', 'multi_ball', 'speed_boost', 'shield', 'slow_motion', 'chaos_ball'
+    x: float
+    y: float
+    size: float = 30.0
+    lifetime: float = 8.0  # Despawn after 8 seconds / Desaparece después de 8 segundos
+    active: bool = True
+    vx: float = 0.0  # Horizontal drift / Deriva horizontal
+    vy: float = 50.0  # Vertical fall speed / Velocidad de caída vertical
+    glow_phase: float = 0.0  # Animation phase / Fase de animación
+
+# Power-up configuration / Configuración de power-ups
+POWERUP_TYPES = ['big_paddle', 'speed_boost', 'shield', 'slow_motion', 'multi_ball', 'chaos_ball']
+POWERUP_WEIGHTS = [30, 25, 20, 15, 10, 10]  # Spawn probability weights / Pesos de probabilidad de aparición
+POWERUP_SPAWN_INTERVAL = 15.0  # Base spawn interval in seconds / Intervalo base de aparición en segundos
+
+# Power-up colors / Colores de power-ups
+POWERUP_COLORS = {
+    'big_paddle': (100, 150, 255),      # Blue / Azul
+    'multi_ball': (255, 100, 100),      # Red / Rojo
+    'speed_boost': (255, 255, 100),     # Yellow / Amarillo
+    'shield': (100, 255, 100),          # Green / Verde
+    'slow_motion': (150, 200, 255),     # Light Blue / Azul claro
+    'chaos_ball': (200, 100, 255)       # Purple / Púrpura
+}
+
 # Color palette (RGB tuples) / Paleta de colores (tuplas RGB)
 WHITE = (255, 255, 255)   # Blanco
 RED = (255, 0, 0)         # Rojo
@@ -1367,6 +1404,15 @@ class Game:
         self.right_pop = 0.0  # Right paddle hit animation / Animación de golpe de paleta derecha
         self.score_bursts = []  # Active score burst effects / Efectos de ráfaga de puntaje activos
         
+        # Power-up system (Phase 2 feature) / Sistema de power-ups (característica Fase 2)
+        self.powerups: list = []  # Active power-ups / Power-ups activos
+        self.balls: list = []  # Multi-ball support / Soporte para multi-bola
+        self.active_effects: dict = {}  # Active power-up effects: type -> time_remaining / Efectos activos: tipo -> tiempo restante
+        self.powerup_spawn_timer: float = 0.0  # Time until next spawn / Tiempo hasta próxima aparición
+        self.powerup_spawn_interval: float = POWERUP_SPAWN_INTERVAL  # Current spawn interval / Intervalo actual de aparición
+        self.shield_active: bool = False  # Shield power-up state / Estado del power-up escudo
+        self.player.original_height = PADDLE_HEIGHT  # Store original height for big paddle / Guardar altura original para paleta grande
+        
         # Difficulty settings: (AI speed, ball speed) / Configuración de dificultad: (velocidad IA, velocidad bola)
         self.difficulties = [
             (300.0, 380.0),  # Easy / Fácil
@@ -1456,6 +1502,42 @@ class Game:
         """
         if self.audio_enabled:
             sound.play()
+    
+    def play_sound(self, sound_type, pitch=1.0):
+        """
+        Play dynamic sound effect for power-ups.
+        Reproducir efecto de sonido dinámico para power-ups.
+        
+        Args / Argumentos:
+            sound_type (str): Type of sound / Tipo de sonido
+            pitch (float): Pitch multiplier / Multiplicador de tono
+        """
+        if not self.audio_enabled:
+            return
+        
+        try:
+            if sound_type == 'powerup_collect':
+                # Rising arpeggio / Arpegio ascendente
+                duration = 0.05
+                for freq in [500, 650, 800, 1000]:
+                    samples = int(44100 * duration)
+                    wave = np.sin(2 * np.pi * freq * pitch * np.linspace(0, duration, samples))
+                    wave = (wave * 8000).astype(np.int16)
+                    stereo = np.column_stack((wave, wave))
+                    sound = pygame.sndarray.make_sound(stereo)
+                    sound.play()
+            elif sound_type == 'powerup_expire':
+                # Descending tone / Tono descendente
+                duration = 0.3
+                samples = int(44100 * duration)
+                freqs = np.linspace(600, 300, samples)
+                wave = np.sin(2 * np.pi * freqs * np.linspace(0, duration, samples))
+                wave = (wave * 6000).astype(np.int16)
+                stereo = np.column_stack((wave, wave))
+                sound = pygame.sndarray.make_sound(stereo)
+                sound.play()
+        except Exception:
+            pass  # Audio synthesis failed, not critical / Síntesis de audio falló, no crítico
     
     def handle_input(self):
         """
@@ -1679,12 +1761,32 @@ class Game:
         
         # Left boundary - AI scores / Límite izquierdo - IA anota
         if ball_rect.right < 0:
-            self.ai_score += 1
-            self.right_pop = 0.5  # Paddle pop animation / Animación de pop de paleta
-            self.spawn_score_burst('right')
-            self.ball.reset(direction=1)  # Reset towards player / Resetear hacia jugador
-            self._shake(0.25, 8)
-            self._play_sound(score_sound)
+            # Check shield power-up / Verificar power-up de escudo
+            if self.shield_active:
+                self.shield_active = False
+                if 'shield' in self.active_effects:
+                    del self.active_effects['shield']
+                # Shield blocked the point / Escudo bloqueó el punto
+                self.ball.reset(direction=1)
+                if self.audio_enabled:
+                    self.play_sound('powerup_collect', pitch=0.8)
+                # Visual feedback / Retroalimentación visual
+                for _ in range(40):
+                    particle = self.particle_pool.acquire()
+                    particle.reset(50, SCREEN_HEIGHT // 2, POWERUP_COLORS['shield'], size=4, life=0.6)
+                    angle = random.random() * math.tau
+                    speed = random.uniform(100, 300)
+                    particle.speed_x = math.cos(angle) * speed
+                    particle.speed_y = math.sin(angle) * speed
+                    particle.initial_life = particle.life
+                    self.particles.append(particle)
+            else:
+                self.ai_score += 1
+                self.right_pop = 0.5  # Paddle pop animation / Animación de pop de paleta
+                self.spawn_score_burst('right')
+                self.ball.reset(direction=1)  # Reset towards player / Resetear hacia jugador
+                self._shake(0.25, 8)
+                self._play_sound(score_sound)
         # Right boundary - Player scores / Límite derecho - Jugador anota
         elif ball_rect.left > SCREEN_WIDTH:
             self.player_score += 1
@@ -1799,6 +1901,272 @@ class Game:
         """Draw all particles. / Dibujar todas las partículas."""
         for p in self.particles:
             p.draw(surface)
+    
+    # ============================================================================
+    # POWER-UP SYSTEM METHODS / MÉTODOS DEL SISTEMA DE POWER-UPS
+    # Phase 2 Feature Implementation
+    # ============================================================================
+    
+    def update_powerup_spawning(self, dt):
+        """
+        Spawn power-ups at intervals during gameplay.
+        Generar power-ups a intervalos durante el juego.
+        
+        Args / Argumentos:
+            dt (float): Delta time / Tiempo delta
+        """
+        if self.state != "playing":
+            return
+        
+        self.powerup_spawn_timer += dt
+        if self.powerup_spawn_timer >= self.powerup_spawn_interval:
+            self.spawn_powerup()
+            self.powerup_spawn_timer = 0.0
+            # Random interval variation (12-18 seconds) / Variación aleatoria del intervalo (12-18 segundos)
+            self.powerup_spawn_interval = 12.0 + random.random() * 6.0
+    
+    def spawn_powerup(self):
+        """
+        Create new power-up at random position.
+        Crear nuevo power-up en posición aleatoria.
+        """
+        # Weighted random selection / Selección aleatoria ponderada
+        powerup_type = random.choices(POWERUP_TYPES, weights=POWERUP_WEIGHTS)[0]
+        
+        # Spawn in middle third of screen / Generar en el tercio medio de la pantalla
+        x = SCREEN_WIDTH // 2 + random.randint(-200, 200)
+        y = random.randint(100, SCREEN_HEIGHT - 100)
+        
+        powerup = PowerUp(
+            type=powerup_type,
+            x=x,
+            y=y,
+            vx=random.uniform(-20, 20),
+            vy=random.uniform(30, 70)
+        )
+        self.powerups.append(powerup)
+        
+        # Spawn particle effect / Efecto de partículas al aparecer
+        color = POWERUP_COLORS[powerup_type]
+        for _ in range(15):
+            particle = self.particle_pool.acquire()
+            particle.reset(x, y, color, size=3, life=0.5)
+            angle = random.random() * math.tau
+            speed = random.uniform(50, 150)
+            particle.speed_x = math.cos(angle) * speed
+            particle.speed_y = math.sin(angle) * speed
+            particle.initial_life = particle.life
+            self.particles.append(particle)
+    
+    def update_powerups(self, dt):
+        """
+        Update power-ups movement and lifetime.
+        Actualizar movimiento y vida útil de power-ups.
+        
+        Args / Argumentos:
+            dt (float): Delta time / Tiempo delta
+        """
+        for powerup in self.powerups[:]:
+            if not powerup.active:
+                continue
+            
+            # Move power-up / Mover power-up
+            powerup.x += powerup.vx * dt
+            powerup.y += powerup.vy * dt
+            powerup.glow_phase += dt * 3.0
+            powerup.lifetime -= dt
+            
+            # Remove expired power-ups / Eliminar power-ups expirados
+            if powerup.lifetime <= 0:
+                self.powerups.remove(powerup)
+    
+    def check_powerup_collision(self, paddle):
+        """
+        Check if paddle collected a power-up.
+        Verificar si la paleta recolectó un power-up.
+        
+        Args / Argumentos:
+            paddle (Paddle): Paddle to check / Paleta a verificar
+        """
+        for powerup in self.powerups[:]:
+            if not powerup.active:
+                continue
+            
+            # Rectangle collision / Colisión de rectángulos
+            if (powerup.x < paddle.x + paddle.width and
+                powerup.x + powerup.size > paddle.x and
+                powerup.y < paddle.y + paddle.height and
+                powerup.y + powerup.size > paddle.y):
+                
+                self.activate_powerup(powerup.type)
+                self.powerups.remove(powerup)
+                
+                # Collection sound / Sonido de recolección
+                if self.audio_enabled:
+                    self.play_sound('powerup_collect', pitch=1.5)
+                
+                # Particle burst at collection point / Ráfaga de partículas en punto de recolección
+                color = POWERUP_COLORS[powerup.type]
+                for _ in range(25):
+                    particle = self.particle_pool.acquire()
+                    particle.reset(powerup.x, powerup.y, color, size=random.randint(2, 5), life=random.uniform(0.3, 0.6))
+                    angle = random.random() * math.tau
+                    speed = random.uniform(100, 300)
+                    particle.speed_x = math.cos(angle) * speed
+                    particle.speed_y = math.sin(angle) * speed
+                    particle.initial_life = particle.life
+                    self.particles.append(particle)
+    
+    def activate_powerup(self, type: str):
+        """
+        Apply power-up effect.
+        Aplicar efecto del power-up.
+        
+        Args / Argumentos:
+            type (str): Power-up type / Tipo de power-up
+        """
+        if type == 'big_paddle':
+            self.active_effects['big_paddle'] = 10.0
+            self.player.height = self.player.original_height * 1.5
+        
+        elif type == 'multi_ball':
+            # Create 2 additional balls / Crear 2 bolas adicionales
+            for _ in range(2):
+                new_ball = Ball()
+                new_ball.x = self.ball.x
+                new_ball.y = self.ball.y
+                new_ball.speed_x = self.ball.speed_x * random.uniform(0.8, 1.2)
+                new_ball.speed_y = self.ball.speed_y * random.uniform(0.8, 1.2)
+                self.balls.append(new_ball)
+        
+        elif type == 'speed_boost':
+            self.active_effects['speed_boost'] = 10.0
+            self.ball.speed_x *= 1.5
+            self.ball.speed_y *= 1.5
+            for ball in self.balls:
+                ball.speed_x *= 1.5
+                ball.speed_y *= 1.5
+        
+        elif type == 'shield':
+            self.shield_active = True
+            self.active_effects['shield'] = 999.0  # Lasts until used / Dura hasta usarse
+        
+        elif type == 'slow_motion':
+            self.active_effects['slow_motion'] = 10.0
+            self.ball.speed_x *= 0.5
+            self.ball.speed_y *= 0.5
+            for ball in self.balls:
+                ball.speed_x *= 0.5
+                ball.speed_y *= 0.5
+        
+        elif type == 'chaos_ball':
+            self.active_effects['chaos_ball'] = 15.0
+    
+    def update_powerup_effects(self, dt):
+        """
+        Update active power-up timers.
+        Actualizar temporizadores de power-ups activos.
+        
+        Args / Argumentos:
+            dt (float): Delta time / Tiempo delta
+        """
+        expired = []
+        
+        for effect_type, time_remaining in self.active_effects.items():
+            if effect_type == 'shield':
+                continue  # Shield doesn't expire by time / Escudo no expira por tiempo
+            
+            time_remaining -= dt
+            
+            if time_remaining <= 0:
+                self.deactivate_powerup(effect_type)
+                expired.append(effect_type)
+            else:
+                self.active_effects[effect_type] = time_remaining
+        
+        for effect in expired:
+            del self.active_effects[effect]
+    
+    def deactivate_powerup(self, type: str):
+        """
+        Remove power-up effect.
+        Eliminar efecto del power-up.
+        
+        Args / Argumentos:
+            type (str): Power-up type / Tipo de power-up
+        """
+        if type == 'big_paddle':
+            self.player.height = self.player.original_height
+        
+        elif type == 'speed_boost':
+            self.ball.speed_x /= 1.5
+            self.ball.speed_y /= 1.5
+            for ball in self.balls:
+                ball.speed_x /= 1.5
+                ball.speed_y /= 1.5
+        
+        elif type == 'slow_motion':
+            self.ball.speed_x /= 0.5
+            self.ball.speed_y /= 0.5
+            for ball in self.balls:
+                ball.speed_x /= 0.5
+                ball.speed_y /= 0.5
+        
+        # Expiration sound / Sonido de expiración
+        if self.audio_enabled:
+            self.play_sound('powerup_expire')
+    
+    def draw_powerups(self):
+        """
+        Draw all active power-ups.
+        Dibujar todos los power-ups activos.
+        """
+        for powerup in self.powerups:
+            if not powerup.active:
+                continue
+            
+            # Glow animation / Animación de brillo
+            glow_intensity = 0.5 + 0.5 * math.sin(powerup.glow_phase)
+            color = POWERUP_COLORS[powerup.type]
+            
+            # Draw glow / Dibujar brillo
+            glow_radius = int(powerup.size * (1.5 + 0.3 * glow_intensity))
+            glow_surf = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(glow_surf, (*color, 50), (glow_radius, glow_radius), glow_radius)
+            self.screen.blit(glow_surf, (powerup.x - glow_radius, powerup.y - glow_radius))
+            
+            # Draw power-up circle / Dibujar círculo del power-up
+            pygame.draw.circle(self.screen, color, (int(powerup.x), int(powerup.y)), int(powerup.size / 2))
+            
+            # Draw inner highlight / Dibujar resaltado interior
+            highlight_color = tuple(min(255, c + 80) for c in color)
+            pygame.draw.circle(self.screen, highlight_color, (int(powerup.x), int(powerup.y)), int(powerup.size / 4))
+    
+    def draw_active_effects_hud(self):
+        """
+        Show active power-ups in corner HUD.
+        Mostrar power-ups activos en HUD de esquina.
+        """
+        y_offset = 80
+        
+        for effect_type, time_remaining in self.active_effects.items():
+            if effect_type == 'shield' and time_remaining > 900:
+                time_remaining = 0  # Don't show time for shield / No mostrar tiempo para escudo
+            
+            color = POWERUP_COLORS[effect_type]
+            
+            # Draw icon background / Dibujar fondo del ícono
+            icon_surf = pygame.Surface((40, 40), pygame.SRCALPHA)
+            pygame.draw.circle(icon_surf, (*color, 200), (20, 20), 18)
+            pygame.draw.circle(icon_surf, (255, 255, 255, 100), (20, 20), 10)
+            self.screen.blit(icon_surf, (SCREEN_WIDTH - 60, y_offset))
+            
+            # Draw timer text / Dibujar texto del temporizador
+            if time_remaining > 0:
+                timer_text = self.small_font.render(f"{int(time_remaining)}s", True, WHITE)
+                self.screen.blit(timer_text, (SCREEN_WIDTH - 55, y_offset + 45))
+            
+            y_offset += 70
     
     def _draw_toggle(self, x, y, enabled, hovered, switch_w=80, switch_h=36):
         """
@@ -2578,6 +2946,11 @@ class Game:
         self.player.draw(self._game_layer)
         self.ai.draw(self._game_layer)
         self.ball.draw(self._game_layer)
+        
+        # Draw multi-balls / Dibujar multi-bolas
+        for ball in self.balls:
+            ball.draw(self._game_layer)
+        
         for i in range(0, SCREEN_HEIGHT, 16):
             pulse = int(150 + 80 * math.sin(self.elapsed * 2 + i * 0.08))
             color = (pulse, 100, 255, 220)
@@ -2619,6 +2992,11 @@ class Game:
         badge = self._badge_cache[cache_key]
         badge_rect = badge.get_rect(topright=(SCREEN_WIDTH - 40, 28))
         self.screen.blit(badge, badge_rect)
+        
+        # Draw power-ups and active effects HUD / Dibujar power-ups y HUD de efectos activos
+        self.draw_powerups()
+        self.draw_active_effects_hud()
+        
         if self.show_debug_hud:
             self._draw_performance_hud()
         if self.state == "gameover":
@@ -3178,7 +3556,23 @@ class Game:
                 self.ai_move()
                 self.ai.move(self.ai_move_dir, self.dt)
                 self.ball.move(self.dt)
+                
+                # Multi-ball system / Sistema de multi-bola
+                for ball in self.balls[:]:
+                    ball.move(self.dt)
+                    # Check if ball scored (remove it) / Verificar si la bola anotó (eliminarla)
+                    ball_rect = ball.get_rect()
+                    if ball_rect.right < 0 or ball_rect.left > SCREEN_WIDTH:
+                        self.balls.remove(ball)
+                
                 self.check_collision()
+                
+                # Power-up system updates / Actualizaciones del sistema de power-ups
+                self.update_powerup_spawning(self.dt)
+                self.update_powerups(self.dt)
+                self.check_powerup_collision(self.player)
+                self.update_powerup_effects(self.dt)
+                
                 self.update_particles(self.dt)
                 self.draw()
             elif self.state == "menu":
