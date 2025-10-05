@@ -270,8 +270,10 @@ class NetworkHost:
             # Permitir reutilización de dirección (previene error "Dirección ya en uso")
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             
-            # Bind to all network interfaces on specified port
-            # Vincular a todas las interfaces de red en el puerto especificado
+            # SECURITY: Bind to all network interfaces for LAN multiplayer
+            # This is intentional for local network play - DO NOT expose to internet
+            # SEGURIDAD: Vincular a todas las interfaces para multijugador LAN
+            # Esto es intencional para juego en red local - NO exponer a internet
             self.socket.bind(('0.0.0.0', self.port))
             
             # Listen for 1 connection / Escuchar 1 conexión
