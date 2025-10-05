@@ -13,7 +13,6 @@
 - [x] **LICENSE** (1.1 KB) - MIT License
 - [x] **CONTRIBUTING.md** (6.3 KB) - Contribution guidelines
 - [x] **CHANGELOG.md** (5.0 KB) - Version history and changes
-- [x] **SECURITY.md** (3.4 KB) - Security policy and reporting
 - [x] **MOBILE_BUILD.md** (5.6 KB) - Android APK build guide
 
 ### Build Configuration
