@@ -2,12 +2,14 @@
 
 All notable changes to Pong AI V2 will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+**Versioning**: 
+- Major releases: v1.0, v2.0, v3.0 (breaking changes or complete rewrites)
+- Minor releases: v1.1, v1.2, v1.3 (new features, significant changes)
+- Patch releases: v1.0.1, v1.0.2, v1.0.3 (bugfixes, small improvements)
 
-## [2.0.0] - 2025-10-05
+## [1.0.0-alpha] - 2025-01-XX
 
-### 🎉 Major Release - Complete Rewrite
+### 🎉 Initial Alpha Release
 
 #### Added
 - ✨ **Comprehensive Bilingual Documentation** - 1,200+ lines of EN/ES comments throughout entire codebase
@@ -79,52 +81,10 @@ None currently reported
 
 ---
 
-## [1.0.0] - Initial Release
+## Future Releases
 
-### Added
-- Basic Pong gameplay
-- AI opponent with difficulty levels
-- Menu system
-- Score tracking
-- Simple graphics
-
----
-
-## Upcoming Features (Planned)
-
-### v2.1.0 (Future)
-- [ ] 🌐 WebSocket-based online multiplayer
-- [ ] 👤 Player profiles and statistics
-- [ ] 🏆 Achievement system
-- [ ] 🎵 Background music
-- [ ] 🎨 Theme customization
-
-### v2.2.0 (Future)
-- [ ] 📱 Mobile port (Android/iOS)
-- [ ] 🎮 New game modes (power-ups, obstacles)
-- [ ] 🌍 More language translations (French, German, etc.)
-- [ ] 📊 Match history and replays
-- [ ] 🏅 Leaderboards
-
----
-
-## Release Notes
-
-### How to Update
-```bash
-# Pull latest changes
-git pull origin main
-
-# Update dependencies
-pip install -r requirements.txt --upgrade
-
-# Run the game
-python main.py
-```
-
-### Migration Guide
-No migration needed - settings automatically upgrade from v1.0.0 to v2.0.0
-
----
-
-**Note**: This is a living document. All changes are tracked here for transparency and easy reference.
+### Planned Features
+- 🌐 Online multiplayer
+- 🏆 Achievements
+- 🎵 Music
+- 📱 Mobile port

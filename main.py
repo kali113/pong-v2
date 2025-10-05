@@ -1,8 +1,10 @@
 # ============================================================================
-# PONG AI V2 - NEON EDITION
+# PONG AI V2 - NEON EDITION v1.0.0-alpha
 # A modern Pong game with AI, multiplayer, particle effects, and translations
 # Un juego moderno de Pong con IA, multijugador, efectos de partículas y traducciones
 # ============================================================================
+
+__version__ = "1.0.0-alpha"
 
 # Standard library imports / Importaciones de biblioteca estándar
 import json       # JSON parsing / Análisis JSON
