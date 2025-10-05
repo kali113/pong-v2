@@ -1,0 +1,7 @@
+theme: jekyll-theme-cayman
+title: Pong AI V2 - Incredible Neon Edition
+description: A stunning modern Pong remake with AI opponent, bilingual UI, and beautiful neon aesthetics
+show_downloads: true
+google_analytics: 
+plugins:
+  - jekyll-seo-tag
