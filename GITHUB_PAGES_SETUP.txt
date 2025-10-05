@@ -1,0 +1,47 @@
+# GitHub Pages Setup Instructions
+
+Your GitHub Pages site is ready! Just need to enable it:
+
+## Enable GitHub Pages
+
+1. Go to: https://github.com/kali113/pong-v2/settings/pages
+
+2. Under "Build and deployment":
+   - **Source**: Deploy from a branch
+   - **Branch**: main
+   - **Folder**: /docs
+
+3. Click **Save**
+
+4. Wait 1-2 minutes for deployment
+
+5. Your site will be live at: **https://kali113.github.io/pong-v2/**
+
+## What's Included
+
+- ✅ Beautiful landing page with neon gradient theme
+- ✅ Feature showcase
+- ✅ Download buttons linking to releases
+- ✅ Mobile responsive design
+- ✅ SEO optimized
+- ✅ Attribution to 4regab
+
+## Customization
+
+Edit `docs/index.html` to customize:
+- Colors and gradients
+- Feature descriptions
+- Add screenshots
+- Add demo video
+- Change layout
+
+## Optional Enhancements
+
+Add to `docs/` folder:
+- Screenshots: `screenshot1.png`, `screenshot2.png`
+- Demo video: Embed YouTube/Vimeo link
+- CNAME: For custom domain (e.g., pong.yourdomain.com)
+
+---
+
+**After enabling, your game will have a professional website!**
