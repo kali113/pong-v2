@@ -1325,6 +1325,7 @@ class Game:
         self.settings_hover_item = None  # Hovered settings item / Elemento de configuración señalado
         self.settings_fullscreen_hover = False  # Fullscreen toggle hover state / Estado hover de toggle pantalla completa
         self._audio_toggle_rect = None  # Audio toggle button rectangle / Rectángulo del botón de toggle audio
+        self._back_button_rect = None  # Settings back button rectangle / Rectángulo del botón atrás de configuración
         
         # Network/multiplayer state / Estado de red/multijugador
         self.multiplayer_mode = None  # None, "host", "client", "matchmaking" / Ninguno, "host", "client", "matchmaking"
@@ -2665,10 +2666,6 @@ class Game:
                             self.state = "menu"
                             self.menu_phase = 0.0
                     elif self.state == "settings":
-                        # Debug: Print click position and back button rect
-                        if hasattr(self, '_back_button_rect'):
-                            print(f"Click at {event.pos}, back_rect: {self._back_button_rect}, collides: {self._back_button_rect.collidepoint(event.pos)}")
-                        
                         if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.toggle_fullscreen()
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
@@ -2679,7 +2676,6 @@ class Game:
                             self.show_debug_hud = not self.show_debug_hud
                             save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
                         elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
-                            print("BACK BUTTON CLICKED!")  # Debug
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
