@@ -18,17 +18,11 @@
 
 ## 🚀 Quick Start
 
-```bash
-# Clone
-git clone https://github.com/kali113/pong-v2.git
-cd pong-v2
+**Windows**: Double-click `RUN.bat` or `BUILD-WINDOWS.bat`
 
-# Install
-pip install -r requirements.txt
+**Linux/Mac**: `chmod +x run.sh && ./run.sh`
 
-# Run
-python main.py
-```
+**Detailed guide**: See [QUICKSTART.md](QUICKSTART.md)
 
 ## 🕹️ Controls
 
