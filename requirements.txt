@@ -1,0 +1,14 @@
+# Pong AI V2 - Incredible Neon Edition
+# Python Package Requirements
+# Install: pip install -r requirements.txt
+
+# Core Dependencies
+pygame>=2.6.0      # Graphics engine, input handling, audio system
+numpy>=1.24.0      # Mathematical operations, audio synthesis
+
+# Optional Dependencies
+Pillow>=10.0.0     # Icon file generation (.ico format)
+
+# Development Dependencies (optional)
+# pyinstaller>=6.0.0  # Build standalone executables
+# pytest>=7.4.0       # Unit testing framework
