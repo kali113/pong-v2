@@ -2997,46 +2997,55 @@ class Game:
 # ============================================================================
 
 if __name__ == "__main__":
-    # Main entry point - Initialize and run the game
-    # Punto de entrada principal - Inicializar y ejecutar el juego
-    #
-    # Execution flow / Flujo de ejecución:
-    # 1. Create Game instance (loads settings, initializes pygame)
-    #    Crear instancia de Game (carga configuración, inicializa pygame)
-    # 2. Run main game loop (60 FPS, event-driven)
-    #    Ejecutar bucle principal del juego (60 FPS, basado en eventos)
-    # 3. Handle user input and state transitions
-    #    Manejar entrada del usuario y transiciones de estado
-    # 4. Continue until user quits (pygame.QUIT event)
-    #    Continuar hasta que el usuario salga (evento pygame.QUIT)
-    #
-    # States / Estados:
-    # - menu: Main menu with difficulty selection
-    # - playing: Active gameplay (single-player or multiplayer)
-    # - gameover: Game over screen with restart option
-    # - settings: Settings menu (fullscreen, audio, language, debug)
-    # - multiplayer: Multiplayer menu (host, join, matchmaking)
-    # - host_waiting: Waiting for client to connect
-    # - diagnostics: System diagnostics and tests
-    #
-    # Controls / Controles:
-    # - W/Up: Move paddle up / Mover paleta arriba
-    # - S/Down: Move paddle down / Mover paleta abajo
-    # - Mouse: Click buttons and drag paddle / Clic en botones y arrastrar paleta
-    # - ESC: Open settings during game / Abrir configuración durante juego
-    # - SPACE/ENTER: Restart after game over / Reiniciar después de game over
-    #
-    # Features / Características:
-    # - AI opponent with difficulty levels / Oponente IA con niveles de dificultad
-    # - LAN multiplayer (host/join) / Multijugador LAN (host/unirse)
-    # - Particle effects and animations / Efectos de partículas y animaciones
-    # - Bilingual UI (EN/ES) / UI bilingüe (EN/ES)
-    # - Audio synthesis / Síntesis de audio
-    # - Performance HUD / HUD de rendimiento
-    # - Settings persistence / Persistencia de configuración
+    # Main entry point with foolproof error handling
+    # Punto de entrada principal con manejo de errores a prueba de tontos
     
-    game = Game()
-    game.run()
+    try:
+        game = Game()
+        game.run()
+    except ImportError as e:
+        print("\n" + "=" * 70)
+        print("  ERROR: Missing dependency / ERROR: Dependencia faltante")
+        print("=" * 70)
+        print(f"\nCouldn't import: {e}")
+        print("\nFIX:")
+        print("  1. Install dependencies: pip install -r requirements.txt")
+        print("  2. Or manually: pip install pygame numpy")
+        print("\nPYTHON VERSION:")
+        print(f"  Current: {sys.version}")
+        print("  Required: 3.10+")
+        if sys.version_info < (3, 10):
+            print("\n⚠️  Your Python is too old! Download 3.10+ from python.org")
+        print("=" * 70)
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+    except pygame.error as e:
+        print("\n" + "=" * 70)
+        print("  ERROR: Pygame initialization failed")
+        print("=" * 70)
+        print(f"\nPygame error: {e}")
+        print("\nPOSSIBLE FIXES:")
+        print("  1. Update graphics drivers")
+        print("  2. Reinstall pygame: pip install pygame --force-reinstall")
+        print("  3. Try windowed mode (disable fullscreen in settings)")
+        print("=" * 70)
+        input("\nPress Enter to exit...")
+        sys.exit(1)
+    except Exception as e:
+        print("\n" + "=" * 70)
+        print("  UNEXPECTED ERROR / ERROR INESPERADO")
+        print("=" * 70)
+        print(f"\nError: {type(e).__name__}: {e}")
+        print("\nPlease report this bug at:")
+        print("  https://github.com/kali113/pong-v2/issues")
+        print("\nInclude this error message and:")
+        print(f"  - OS: {sys.platform}")
+        print(f"  - Python: {sys.version}")
+        print("=" * 70)
+        import traceback
+        traceback.print_exc()
+        input("\nPress Enter to exit...")
+        sys.exit(1)
 
 # ============================================================================
 # END OF FILE / FIN DEL ARCHIVO

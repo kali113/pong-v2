@@ -20,6 +20,10 @@
    NEED WSL? https://docs.microsoft.com/en-us/windows/wsl/install
 
 👉 JUST WANT TO PLAY?
+   Windows: Double-click RUN.bat
+   Linux/Mac: Run: chmod +x run.sh && ./run.sh
+   
+   Or manually:
    1. Install Python 3.10+
    2. Run: pip install -r requirements.txt
    3. Run: python main.py
