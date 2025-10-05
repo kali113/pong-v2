@@ -43,17 +43,13 @@ python main.py
 - pygame >= 2.6.0
 - numpy >= 1.24.0
 
-## 🏗️ Build
+## 🏗️ Build (One-Click!)
 
-```bash
-# Windows .exe
-pip install pyinstaller
-pyinstaller --onefile --windowed --icon=icon.ico --name="PongAI-Neon" main.py
+**Windows EXE**: `.\build-exe.ps1` (2-5 min)
 
-# Android APK (Linux/WSL)
-pip install buildozer
-buildozer android debug
-```
+**Android APK**: `./build-apk.sh` (10-30 min first time)
+
+See [BUILD.md](BUILD.md) for detailed instructions.
 
 ## 🐛 Troubleshooting
 
