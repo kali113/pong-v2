@@ -7,7 +7,6 @@
 __version__ = "1.0.0-alpha"
 
 # Standard library imports / Importaciones de biblioteca estándar
-import asyncio    # Async/await support for web / Soporte async/await para web
 import json       # JSON parsing / Análisis JSON
 import math       # Mathematical functions / Funciones matemáticas
 import os         # Operating system interface / Interfaz del sistema operativo
@@ -41,14 +40,6 @@ os.environ['SDL_VIDEO_CENTERED'] = '1'
 import pygame
 pygame.init()  # Initialize display and input / Inicializar pantalla y entrada
 pygame.mixer.init()  # Initialize audio system / Inicializar sistema de audio
-
-# Web environment detection / Detección de entorno web
-# Check if running in browser via Pygbag/Pyodide
-try:
-    import platform
-    IS_WEB = platform.system() == "Emscripten"
-except:
-    IS_WEB = False
 
 # Settings file location / Ubicación del archivo de configuración
 # Stored in user's home directory / Almacenado en el directorio personal del usuario
@@ -2641,25 +2632,8 @@ class Game:
     
     def run(self):
         """
-        Main game loop entry point - auto-detects environment and runs appropriate loop.
-        Punto de entrada del bucle principal - detecta automáticamente el entorno y ejecuta el bucle apropiado.
-        
-        Runs async loop for web/Pygbag, sync loop for desktop.
-        Ejecuta bucle async para web/Pygbag, bucle sync para escritorio.
-        """
-        if IS_WEB:
-            # Web mode: Use async loop for browser compatibility
-            # Modo web: Usar bucle async para compatibilidad con navegador
-            asyncio.run(self.run_async())
-        else:
-            # Desktop mode: Use traditional synchronous loop
-            # Modo escritorio: Usar bucle síncrono tradicional
-            self._run_sync()
-    
-    def _run_sync(self):
-        """
-        Synchronous game loop for desktop - original implementation.
-        Bucle de juego síncrono para escritorio - implementación original.
+        Main game loop - handles all events, updates, and rendering.
+        Bucle principal del juego - maneja todos los eventos, actualizaciones y renderizado.
         
         Loop structure / Estructura del bucle:
         1. Clock tick (60 FPS target) / Tick de reloj (objetivo 60 FPS)
@@ -3016,178 +2990,6 @@ class Game:
                     self._mp_game_started = True
                     pygame.time.wait(1000)
                     self._start_game()
-            elif self.state == "gameover":
-                # Draw game over screen / Dibujar pantalla de game over
-                self.draw()
-    
-    async def run_async(self):
-        """
-        Asynchronous game loop for web/Pygbag - browser-compatible version.
-        Bucle de juego asíncrono para web/Pygbag - versión compatible con navegador.
-        
-        Identical to _run_sync() but yields control to browser event loop via await asyncio.sleep(0).
-        Idéntico a _run_sync() pero cede control al bucle de eventos del navegador mediante await asyncio.sleep(0).
-        
-        Web limitations / Limitaciones web:
-        - Multiplayer disabled (no socket support in browsers)
-        - Settings save may use localStorage instead of file I/O
-        - Performance may be lower than desktop
-        """
-        self.player_move_dir = 0.0
-        self.ai_move_dir = 0.0
-        while True:
-            dt_ms = self.clock.tick(60)
-            self.dt = max(0.001, dt_ms / 1000.0)
-            self.elapsed += self.dt
-            self.shake_time, self.left_pop, self.right_pop = max(0.0, self.shake_time - self.dt), max(0.0, self.left_pop - self.dt), max(0.0, self.right_pop - self.dt)
-            self.update_score_bursts(self.dt)
-            
-            # Yield to browser event loop / Ceder al bucle de eventos del navegador
-            await asyncio.sleep(0)
-            
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    if self.state == "diagnostics":
-                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos):
-                            self.state = "menu"
-                            self.menu_phase = 0.0
-                    elif self.state == "settings":
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
-                            self.toggle_fullscreen()
-                        elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
-                            self.toggle_audio()
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
-                            self.toggle_language()
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
-                            self.show_debug_hud = not self.show_debug_hud
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
-                            self.state = "menu"
-                            self.menu_phase = 0.0
-                            self.settings_hover_item = None
-                            self.settings_fullscreen_hover = False
-                    # Note: Multiplayer disabled in web mode (no socket support)
-                    # Nota: Multijugador deshabilitado en modo web (sin soporte de sockets)
-                    if self.state == "menu":
-                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos):
-                            self.state = "settings"
-                            self.menu_phase = 0.0
-                            self.settings_hover_item = None
-                        elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
-                            self.run_diagnostics()
-                            self.state = "diagnostics"
-                        else:
-                            target_idx = self.menu_hover_index
-                            if target_idx is None:
-                                for rect, idx in self.difficulty_hitboxes:
-                                    if rect.collidepoint(event.pos):
-                                        target_idx = idx
-                                        break
-                            if target_idx is not None and target_idx != self.diff_index:
-                                self.diff_index = target_idx
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                            if target_idx is not None:
-                                self.menu_hover_index = target_idx
-                    if self.state == "playing" and self._player_drag_rect().collidepoint(event.pos):
-                        self.dragging = True
-                        pointer_y = min(max(event.pos[1], self.player.y), self.player.y + self.player.height)
-                        self.drag_offset = pointer_y - self.player.y
-                if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                    self.dragging = False
-                if event.type == pygame.MOUSEMOTION:
-                    if self.state == "menu":
-                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
-                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
-                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
-                        self.menu_hover_index = None
-                        for rect, idx in self.difficulty_hitboxes:
-                            if rect.collidepoint(event.pos):
-                                self.menu_hover_index = idx
-                                break
-                    elif self.state == "settings":
-                        self.settings_hover_item = None
-                        self.settings_fullscreen_hover = False
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
-                            self.settings_fullscreen_hover = True
-                        elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
-                            self.settings_hover_item = "audio_toggle"
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
-                            self.settings_hover_item = "language_toggle"
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
-                            self.settings_hover_item = "debug_toggle"
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
-                            self.settings_hover_item = "back"
-                    elif self.state == "diagnostics":
-                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos)
-                    elif self.dragging and self.state == "playing":
-                        new_y = event.pos[1] - self.drag_offset
-                        self.player.y = max(0.0, min(SCREEN_HEIGHT - self.player.height, new_y))
-                        self.player_move_dir = 0.0
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_F11 or (event.key == pygame.K_f and pygame.key.get_mods() & pygame.KMOD_ALT):
-                        self.toggle_fullscreen()
-                    elif event.key == pygame.K_m:
-                        self.toggle_audio()
-                    if self.state == "menu":
-                        if event.key in (pygame.K_UP, pygame.K_w):
-                            self.diff_index = (self.diff_index - 1) % len(self.difficulties)
-                            self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif event.key in (pygame.K_DOWN, pygame.K_s):
-                            self.diff_index = (self.diff_index + 1) % len(self.difficulties)
-                            self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                            self._start_game()
-                    elif self.state == "settings":
-                        if event.key == pygame.K_ESCAPE:
-                            self.state = "menu"
-                            self.menu_phase = 0.0
-                            self.settings_hover_item = None
-                        elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                            if self.settings_fullscreen_hover:
-                                self.toggle_fullscreen()
-                            elif self.settings_hover_item == "audio_toggle":
-                                self.toggle_audio()
-                            else:
-                                self.show_debug_hud = not self.show_debug_hud
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                    elif self.state == "diagnostics":
-                        if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                            self.state = "menu"
-                            self.menu_phase = 0.0
-                    elif self.state == "gameover":
-                        if event.key in (pygame.K_SPACE, pygame.K_RETURN):
-                            self.player_score = 0
-                            self.ai_score = 0
-                            self.left_pop = 0.0
-                            self.right_pop = 0.0
-                            self.state = "menu"
-                            self.menu_phase = 0.0
-                            self.gameover_phase = 0.0
-                            self.dragging = False
-                            self.menu_hover_index = None
-                            self._clear_particles()
-                            self.score_bursts.clear()
-            self.handle_input()
-            if self.state == "playing":
-                self.player.move(self.player_move_dir, self.dt)
-                self.ai_move()
-                self.ai.move(self.ai_move_dir, self.dt)
-                self.ball.move(self.dt)
-                self.check_collision()
-                self.update_particles(self.dt)
-                self.draw()
-            elif self.state == "menu":
-                self.update_demo_game(self.dt)
-                self.draw_menu()
-            elif self.state == "settings":
-                self.draw_settings()
-            elif self.state == "diagnostics":
-                self.draw_diagnostics()
             elif self.state == "gameover":
                 # Draw game over screen / Dibujar pantalla de game over
                 self.draw()
