@@ -34,4 +34,4 @@ desktop.ini
 
 # Distribution
 *.egg-info/
-*.egg
+*.egg*.old.md

@@ -1,0 +1,28 @@
+# Versioning System
+
+**Current Version**: v1.0.0-alpha
+
+## Version Format
+
+- **Major releases** (v1.0, v2.0, v3.0): Breaking changes or complete rewrites
+- **Minor releases** (v1.1, v1.2, v1.3): New features, significant changes
+- **Patch releases** (v1.0.1, v1.0.2, v1.0.3): Bugfixes, small improvements
+
+## Release Tags
+
+- Alpha: `v1.0.0-alpha` (current)
+- Beta: `v1.0.0-beta`
+- Release Candidate: `v1.0.0-rc1`
+- Stable: `v1.0.0`
+
+## Update Instructions
+
+When releasing a new version:
+
+1. Update `__version__` in main.py
+2. Update version badge in README.md
+3. Update CHANGELOG.md with changes
+4. Commit: `git commit -m "chore: Bump version to vX.X.X"`
+5. Tag: `git tag -a vX.X.X -m "Release vX.X.X - description"`
+6. Push: `git push && git push origin vX.X.X`
+7. Create GitHub Release from tag with changelog notes
