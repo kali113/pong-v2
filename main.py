@@ -1441,6 +1441,10 @@ class Game:
         self.dragging = False  # Mouse drag active / Arrastre de ratón activo
         self.drag_offset = 0.0  # Mouse drag offset / Offset de arrastre de ratón
         
+        # Button animation state / Estado de animación de botones
+        self.button_scales = {}  # Smooth button hover scales / Escalas suaves de hover de botones
+        self.button_target_scales = {}  # Target scales for animations / Escalas objetivo para animaciones
+        
         # Game mode / Modo de juego
         self.game_mode = "single"  # "single" or "2player" / "single" o "2player"
         
@@ -2193,6 +2197,84 @@ class Game:
             
             y_offset += 70
     
+    def _update_button_animations(self):
+        """Update smooth button hover animations / Actualizar animaciones suaves de hover de botones"""
+        for btn_id in list(self.button_scales.keys()):
+            target = self.button_target_scales.get(btn_id, 1.0)
+            current = self.button_scales[btn_id]
+            # Smooth lerp towards target / Interpolación suave hacia objetivo
+            self.button_scales[btn_id] = current + (target - current) * min(1.0, self.dt * 12.0)
+    
+    def _get_button_scale(self, btn_id, hovered):
+        """Get animated button scale / Obtener escala animada del botón"""
+        self.button_target_scales[btn_id] = 1.08 if hovered else 1.0
+        return self.button_scales.get(btn_id, 1.0)
+    
+    def _draw_modern_button(self, text, x, y, hovered=False, scale=1.0, glow_color=(100, 200, 255)):
+        """
+        Draw modern gradient button with glow effect.
+        Dibujar botón moderno con gradiente y efecto de brillo.
+        
+        Args / Argumentos:
+            text (str): Button text / Texto del botón
+            x, y (float): Center position / Posición central
+            hovered (bool): Hover state / Estado de hover
+            scale (float): Scale multiplier for animations / Multiplicador de escala para animaciones
+            glow_color (tuple): RGB glow color / Color RGB del brillo
+        
+        Returns / Retorna:
+            pygame.Rect: Button hitbox / Hitbox del botón
+        """
+        # Render text / Renderizar texto
+        text_surf = self.font.render(text, True, (255, 255, 255))
+        text_w, text_h = text_surf.get_size()
+        
+        # Calculate button dimensions with padding / Calcular dimensiones con padding
+        btn_w = int((text_w + 60) * scale)
+        btn_h = int((text_h + 30) * scale)
+        btn_x = int(x - btn_w / 2)
+        btn_y = int(y - btn_h / 2)
+        
+        # Create button rect / Crear rectángulo del botón
+        btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        
+        # Draw glow effect when hovered / Dibujar efecto de brillo al hacer hover
+        if hovered:
+            glow_surf = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
+            for i in range(5):
+                alpha = int(40 - i * 7)
+                expand = i * 4
+                glow_rect = pygame.Rect(expand, expand, btn_w + 20 - expand * 2, btn_h + 20 - expand * 2)
+                pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_rect, border_radius=15)
+            self.screen.blit(glow_surf, (btn_x - 10, btn_y - 10))
+        
+        # Draw gradient background / Dibujar fondo con gradiente
+        btn_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        for i in range(btn_h):
+            t = i / btn_h
+            if hovered:
+                r = int(glow_color[0] * (0.5 + 0.3 * t))
+                g = int(glow_color[1] * (0.5 + 0.3 * t))
+                b = int(glow_color[2] * (0.7 + 0.3 * t))
+            else:
+                r = int(40 + 30 * t)
+                g = int(50 + 30 * t)
+                b = int(80 + 40 * t)
+            pygame.draw.line(btn_surf, (r, g, b, 255), (0, i), (btn_w, i))
+        
+        # Draw border / Dibujar borde
+        border_color = glow_color if hovered else (80, 90, 120)
+        pygame.draw.rect(btn_surf, border_color, btn_surf.get_rect(), width=2, border_radius=12)
+        
+        self.screen.blit(btn_surf, (btn_x, btn_y))
+        
+        # Draw text centered / Dibujar texto centrado
+        scaled_text = pygame.transform.scale(text_surf, (int(text_w * scale), int(text_h * scale)))
+        text_rect = scaled_text.get_rect(center=(x, y))
+        self.screen.blit(scaled_text, text_rect)
+        
+        return btn_rect
+    
     def _draw_toggle(self, x, y, enabled, hovered, switch_w=80, switch_h=36):
         """
         Draw iOS-style toggle switch.
@@ -2311,22 +2393,15 @@ class Game:
         hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing))
         self.screen.blit(hint, hint_rect)
         
-        # 2-Player button / Botón de 2 jugadores
+        # 2-Player button with modern style / Botón de 2 jugadores con estilo moderno
         twoplay_y = base_y + len(self.difficulties) * spacing + 50
-        twoplay_text = self.font.render(self.t('2player'), True, (255, 200, 50))
-        twoplay_rect = twoplay_text.get_rect(center=(cx, twoplay_y))
-        twoplay_hit = pygame.Rect(twoplay_rect.left - 40, twoplay_rect.top - 10, twoplay_rect.width + 80, twoplay_rect.height + 20)
-        
         twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
-        if twoplay_hovered:
-            glow = pygame.Surface((twoplay_hit.width, twoplay_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (255, 200, 50, 120), glow.get_rect(), border_radius=16)
-            self.screen.blit(glow, twoplay_hit)
-        
-        # Draw border / Dibujar borde
-        pygame.draw.rect(self.screen, (255, 180, 30), twoplay_hit, width=2, border_radius=16)
-        self.screen.blit(twoplay_text, twoplay_rect)
-        self._2player_button_rect = twoplay_hit
+        btn_scale = self._get_button_scale('2player', twoplay_hovered)
+        if '2player' not in self.button_scales:
+            self.button_scales['2player'] = 1.0
+        self._2player_button_rect = self._draw_modern_button(
+            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (255, 200, 50)
+        )
         
         mp_y = base_y + len(self.difficulties) * spacing + 110
         mp_text = self.font.render(self.t('multiplayer'), True, (200, 220, 255))
@@ -3122,6 +3197,7 @@ class Game:
             self.elapsed += self.dt
             self.shake_time, self.left_pop, self.right_pop = max(0.0, self.shake_time - self.dt), max(0.0, self.left_pop - self.dt), max(0.0, self.right_pop - self.dt)
             self.update_score_bursts(self.dt)
+            self._update_button_animations()  # Smooth button hover animations / Animaciones suaves de hover de botones
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -3484,6 +3560,7 @@ class Game:
             self.elapsed += self.dt
             self.shake_time, self.left_pop, self.right_pop = max(0.0, self.shake_time - self.dt), max(0.0, self.left_pop - self.dt), max(0.0, self.right_pop - self.dt)
             self.update_score_bursts(self.dt)
+            self._update_button_animations()  # Smooth button hover animations / Animaciones suaves de hover de botones
             
             # Yield to browser event loop / Ceder al bucle de eventos del navegador
             await asyncio.sleep(0)
