@@ -1,6 +1,5 @@
 ---
 description: Beast Mode 4.0 - Optimized for Claude 4.5 Sonnet with Extended Reasoning and Self-Improvement
-tools: ['createFile', 'createDirectory','editFiles', 'runNotebooks', 'search', 'new', 'terminalSelection', 'terminalLastCommand', 'runTasks', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'fetch', 'githubRepo', 'extensions', 'runTests', 'context7', 'gitmcp','runInTerminal']
 ---
 
 # Beast Mode 4.0 - Optimized for Claude 4.5 Sonnet
