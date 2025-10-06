@@ -1,10 +1,10 @@
 # ============================================================================
-# PONG AI V2 - NEON EDITION v1.0.0-alpha
-# A modern Pong game with AI, multiplayer, particle effects, and translations
-# Un juego moderno de Pong con IA, multijugador, efectos de partículas y traducciones
+# PONG AI V2 - NEON EDITION v1.0.0-pre-alpha
+# A modern Pong game with AI, multiplayer, power-ups, particle effects, and translations
+# Un juego moderno de Pong con IA, multijugador, power-ups, efectos de partículas y traducciones
 # ============================================================================
 
-__version__ = "1.0.0-alpha"
+__version__ = "1.0.0-pre-alpha"
 
 # Standard library imports / Importaciones de biblioteca estándar
 import asyncio    # Async/await support for web / Soporte async/await para web
@@ -305,29 +305,32 @@ class NetworkHost:
         """
         Accept incoming client connections (background thread).
         Aceptar conexiones entrantes de clientes (hilo en segundo plano).
-        
+
         Note / Nota:
             Runs in daemon thread until first client connects or server stops
             Se ejecuta en hilo daemon hasta que conecte el primer cliente o se detenga el servidor
         """
+        print("[Debug Network] Accept loop started")
         while self.running and not self.connected:
             try:
                 # Wait for client connection / Esperar conexión de cliente
-                client, _ = self.socket.accept()
-                
+                client, addr = self.socket.accept()
+                print(f"[Debug Network] Client connected from {addr}")
+
                 # Set short timeout for receive operations
                 # Establecer timeout corto para operaciones de recepción
                 client.settimeout(0.1)
-                
+
                 self.client_socket = client
                 self.connected = True
-                
+
                 # Start receive loop in new thread / Iniciar bucle de recepción en nuevo hilo
                 threading.Thread(target=self._recv_loop, daemon=True).start()
                 break
             except socket.timeout:
                 continue  # No connection yet, retry / Sin conexión aún, reintentar
-            except (socket.error, OSError):
+            except (socket.error, OSError) as e:
+                print(f"[Debug Network] Accept loop error: {e}")
                 break  # Socket error, stop accepting / Error de socket, detener aceptación
     
     def _recv_loop(self):
@@ -1428,8 +1431,12 @@ class Game:
         # Input state / Estado de entrada
         self.player_move_dir = 0.0  # Player movement direction / Dirección de movimiento del jugador
         self.ai_move_dir = 0.0  # AI movement direction / Dirección de movimiento de la IA
+        self.player2_move_dir = 0.0  # Player 2 movement direction (2-player mode) / Dirección de movimiento del jugador 2 (modo 2 jugadores)
         self.dragging = False  # Mouse drag active / Arrastre de ratón activo
         self.drag_offset = 0.0  # Mouse drag offset / Offset de arrastre de ratón
+        
+        # Game mode / Modo de juego
+        self.game_mode = "single"  # "single" or "2player" / "single" o "2player"
         
         # Frame timing / Temporización de fotogramas
         self.dt = 0.016  # Delta time (60 FPS target) / Delta de tiempo (objetivo 60 FPS)
@@ -1541,20 +1548,29 @@ class Game:
     
     def handle_input(self):
         """
-        Handle keyboard input for player movement.
-        Manejar entrada de teclado para movimiento del jugador.
+        Handle keyboard input for player movement (1 or 2 players).
+        Manejar entrada de teclado para movimiento del jugador (1 o 2 jugadores).
         """
         keys = pygame.key.get_pressed()
         if self.state == "playing":
+            # Player 1 controls (left paddle) - W/S keys / Controles Jugador 1 (paleta izquierda) - teclas W/S
             dir_y = 0.0
             if not self.dragging:
-                # W/Up arrow = move up / W/Flecha arriba = mover arriba
-                if keys[pygame.K_w] or keys[pygame.K_UP]:
+                if keys[pygame.K_w]:
                     dir_y -= 1.0
-                # S/Down arrow = move down / S/Flecha abajo = mover abajo
-                if keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                if keys[pygame.K_s]:
                     dir_y += 1.0
             self.player_move_dir = dir_y if not self.dragging else 0.0
+            
+            # Player 2 controls (right paddle) - Arrow keys (2-player mode only)
+            # Controles Jugador 2 (paleta derecha) - flechas (solo modo 2 jugadores)
+            if self.game_mode == "2player":
+                p2_dir = 0.0
+                if keys[pygame.K_UP]:
+                    p2_dir -= 1.0
+                if keys[pygame.K_DOWN]:
+                    p2_dir += 1.0
+                self.player2_move_dir = p2_dir
             
             # ESC = open settings / ESC = abrir configuración
             if keys[pygame.K_ESCAPE]:
@@ -1810,9 +1826,12 @@ class Game:
         """
         if not self.particles:
             return
+        particle_count = len(self.particles)
+        print(f"[Debug] Clearing {particle_count} particles")
         for particle in self.particles:
             self.particle_pool.release(particle)
         self.particles.clear()
+        print(f"[Debug] Particles cleared, pool size: {len(self.particle_pool._pool)}")
     
     def create_particles(self, x, y, color):
         """
@@ -2285,7 +2304,25 @@ class Game:
         hint = self.font.render(self.t('difficulty_hint'), True, (190, 190, 200))
         hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing))
         self.screen.blit(hint, hint_rect)
-        mp_y = base_y + len(self.difficulties) * spacing + 60
+        
+        # 2-Player button / Botón de 2 jugadores
+        twoplay_y = base_y + len(self.difficulties) * spacing + 50
+        twoplay_text = self.font.render("🎮 2 PLAYER", True, (255, 200, 50))
+        twoplay_rect = twoplay_text.get_rect(center=(cx, twoplay_y))
+        twoplay_hit = pygame.Rect(twoplay_rect.left - 40, twoplay_rect.top - 10, twoplay_rect.width + 80, twoplay_rect.height + 20)
+        
+        twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
+        if twoplay_hovered:
+            glow = pygame.Surface((twoplay_hit.width, twoplay_hit.height), pygame.SRCALPHA)
+            pygame.draw.rect(glow, (255, 200, 50, 120), glow.get_rect(), border_radius=16)
+            self.screen.blit(glow, twoplay_hit)
+        
+        # Draw border / Dibujar borde
+        pygame.draw.rect(self.screen, (255, 180, 30), twoplay_hit, width=2, border_radius=16)
+        self.screen.blit(twoplay_text, twoplay_rect)
+        self._2player_button_rect = twoplay_hit
+        
+        mp_y = base_y + len(self.difficulties) * spacing + 110
         mp_text = self.font.render(self.t('multiplayer'), True, (200, 220, 255))
         mp_rect = mp_text.get_rect(center=(cx, mp_y))
         icon_size = 28
@@ -2974,8 +3011,15 @@ class Game:
         self.screen.blit(r_shadow, (r_pos[0] + 3, r_pos[1] + 4))
         self.screen.blit(l_surf, l_pos)
         self.screen.blit(r_surf, r_pos)
-        player_label = self.small_font.render("Player", True, (200, 210, 230))
-        ai_label = self.small_font.render("AI", True, (200, 210, 230))
+        
+        # Dynamic labels for 2-player mode / Etiquetas dinámicas para modo 2 jugadores
+        if self.game_mode == "2player":
+            player_label = self.small_font.render("Player 1", True, (200, 210, 230))
+            ai_label = self.small_font.render("Player 2", True, (200, 210, 230))
+        else:
+            player_label = self.small_font.render("Player", True, (200, 210, 230))
+            ai_label = self.small_font.render("AI", True, (200, 210, 230))
+        
         self.screen.blit(player_label, (SCREEN_WIDTH // 4 - player_label.get_width() // 2, 80))
         self.screen.blit(ai_label, (3 * SCREEN_WIDTH // 4 - ai_label.get_width() // 2, 80))
         if not hasattr(self, '_badge_cache'):
@@ -3001,7 +3045,13 @@ class Game:
             self._draw_performance_hud()
         if self.state == "gameover":
             self.gameover_phase = min(self.gameover_phase + self.dt * 1.5, 1.0)
-            winner = "Player" if self.player_score > self.ai_score else "AI"
+            
+            # Dynamic winner text for 2-player mode / Texto de ganador dinámico para modo 2 jugadores
+            if self.game_mode == "2player":
+                winner = "Player 1" if self.player_score > self.ai_score else "Player 2"
+            else:
+                winner = "Player" if self.player_score > self.ai_score else "AI"
+            
             fade_alpha = int(255 * 0.6 * self.gameover_phase)
             overlay_alpha = fade_alpha + int(40 * math.sin(self.elapsed * 2))
             overlay_alpha = max(0, min(220, overlay_alpha))
@@ -3056,8 +3106,10 @@ class Game:
         - "host_waiting": Waiting for client connection / Esperando conexión de cliente
         - "diagnostics": Network diagnostics / Diagnósticos de red
         """
+        # [SYNC LOOP MARKER] - For identifying this loop vs async
         self.player_move_dir = 0.0
         self.ai_move_dir = 0.0
+        self._2player_button_hover = False
         while True:
             dt_ms = self.clock.tick(60)
             self.dt = max(0.001, dt_ms / 1000.0)
@@ -3203,6 +3255,10 @@ class Game:
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos):
+                            # Start 2-player game / Iniciar juego de 2 jugadores
+                            self.game_mode = "2player"
+                            self._start_game()
                         elif hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos):
                             self.state = "multiplayer"
                             self.menu_phase = 0.0
@@ -3231,6 +3287,7 @@ class Game:
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
                         self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos)
                         self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
                         self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
@@ -3411,8 +3468,10 @@ class Game:
         - Settings save may use localStorage instead of file I/O
         - Performance may be lower than desktop
         """
+        # [ASYNC LOOP MARKER] - For identifying this loop vs sync
         self.player_move_dir = 0.0
         self.ai_move_dir = 0.0
+        self._2player_button_hover = False
         while True:
             dt_ms = self.clock.tick(60)
             self.dt = max(0.001, dt_ms / 1000.0)
@@ -3454,6 +3513,10 @@ class Game:
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos):
+                            # Start 2-player game / Iniciar juego de 2 jugadores
+                            self.game_mode = "2player"
+                            self._start_game()
                         elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
                             self.run_diagnostics()
                             self.state = "diagnostics"
@@ -3478,6 +3541,7 @@ class Game:
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
                         self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos)
                         self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
                         self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
@@ -3553,8 +3617,14 @@ class Game:
             self.handle_input()
             if self.state == "playing":
                 self.player.move(self.player_move_dir, self.dt)
-                self.ai_move()
-                self.ai.move(self.ai_move_dir, self.dt)
+                
+                # Player 2 or AI movement / Movimiento Jugador 2 o IA
+                if self.game_mode == "2player":
+                    self.ai.move(self.player2_move_dir, self.dt)  # Reuse AI paddle for Player 2 / Reusar paleta IA para Jugador 2
+                else:
+                    self.ai_move()  # AI logic / Lógica IA
+                    self.ai.move(self.ai_move_dir, self.dt)
+                
                 self.ball.move(self.dt)
                 
                 # Multi-ball system / Sistema de multi-bola
@@ -3570,7 +3640,9 @@ class Game:
                 # Power-up system updates / Actualizaciones del sistema de power-ups
                 self.update_powerup_spawning(self.dt)
                 self.update_powerups(self.dt)
-                self.check_powerup_collision(self.player)
+                self.check_powerup_collision(self.player)  # Player 1
+                if self.game_mode == "2player":
+                    self.check_powerup_collision(self.ai)  # Player 2
                 self.update_powerup_effects(self.dt)
                 
                 self.update_particles(self.dt)
@@ -3644,8 +3716,8 @@ if __name__ == "__main__":
 # ============================================================================
 # END OF FILE / FIN DEL ARCHIVO
 # ============================================================================
-# Project: PongAI V2 - Incredible Neon Edition
-# Proyecto: PongAI V2 - Edición Neón Increíble
+# Project: PongAI V2 - 
+# Proyecto: PongAI V2 - 
 # 
 # Total Lines: ~3000+ (including documentation)
 # Líneas Totales: ~3000+ (incluyendo documentación)
