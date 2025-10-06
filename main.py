@@ -24,6 +24,22 @@ from pathlib import Path  # Object-oriented filesystem paths / Rutas del sistema
 # Third-party imports / Importaciones de terceros
 import numpy as np  # Numerical computing / Computación numérica
 
+# Debug utilities (optional) / Utilidades de depuración (opcional)
+try:
+    from debug_config import log_info, log_error, log_debug, PERFORMANCE_PROFILER
+    DEBUG_AVAILABLE = True
+except ImportError:
+    # Fallback if debug_config not available / Respaldo si debug_config no está disponible
+    DEBUG_AVAILABLE = False
+    def log_info(msg): pass
+    def log_error(msg, e=None): pass
+    def log_debug(msg): pass
+    class PERFORMANCE_PROFILER:
+        @staticmethod
+        def add_frame_time(dt): pass
+        @staticmethod
+        def update_metric(key, val): pass
+
 # Windows DPI awareness fix / Corrección de DPI para Windows
 # This prevents blurry text on high-DPI displays
 # Esto previene texto borroso en pantallas de alto DPI
@@ -47,7 +63,7 @@ pygame.mixer.init()  # Initialize audio system / Inicializar sistema de audio
 try:
     import platform
     IS_WEB = platform.system() == "Emscripten"
-except:
+except (ImportError, AttributeError) as e:
     IS_WEB = False
 
 # Settings file location / Ubicación del archivo de configuración
