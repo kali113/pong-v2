@@ -11,7 +11,7 @@
 **DO NOT** open public issues for security vulnerabilities.
 
 Instead:
-1. Email: [Your Email] or open a private security advisory
+1. Email: gayzmore1@gmail.com or open a private security advisory
 2. Include:
    - Description of the vulnerability
    - Steps to reproduce
