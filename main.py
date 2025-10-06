@@ -47,7 +47,7 @@ pygame.mixer.init()  # Initialize audio system / Inicializar sistema de audio
 try:
     import platform
     IS_WEB = platform.system() == "Emscripten"
-except:
+except (ImportError, AttributeError) as e:
     IS_WEB = False
 
 # Settings file location / Ubicación del archivo de configuración
