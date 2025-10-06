@@ -31,6 +31,8 @@ desktop.ini
 # Game-specific
 *.log
 .pong_ai_settings.json
+.pong_ai_debug.log
+.pong_ai_test_write
 
 # Distribution
 *.egg-info/
