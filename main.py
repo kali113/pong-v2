@@ -67,7 +67,10 @@ TRANSLATIONS = {
         'join_private': 'Join Private Game:', 'join': 'Join', 'or': 'OR', 'find_public': 'Find Public Match',
         'waiting': 'Waiting for player...', 'host_code': 'Host Code:', 'cancel': 'Cancel', 'player': 'Player', 'ai': 'AI',
         'searching': 'Searching for match', 'code_hint': 'CODE', 'close': 'Close', 'game_over': 'Game Over',
-        'wins': 'wins!', 'rematch': 'Rematch (R)', 'menu': 'Menu (M)'
+        'wins': 'wins!', 'rematch': 'Rematch (R)', 'menu': 'Menu (M)', 
+        '2player': '🎮 2 PLAYER', 'system_diagnostics': 'System Diagnostics', 'hosting_game': 'Hosting Game',
+        'share_code': 'Share code:', 'or_ip': 'Or IP:', 'waiting_player': 'Waiting for player', 
+        'player_connected': 'Player Connected!', 'internet': 'Internet:'
     },
     'es': {  # Spanish translations / Traducciones en español
         'title': 'Pong IA', 'subtitle': 'ESPACIO / ENTER para iniciar', 'easy': 'Fácil', 'medium': 'Medio', 'hard': 'Difícil',
@@ -77,7 +80,10 @@ TRANSLATIONS = {
         'join_private': 'Unirse a Partida Privada:', 'join': 'Unirse', 'or': 'O', 'find_public': 'Buscar Partida Pública',
         'waiting': 'Esperando jugador...', 'host_code': 'Código:', 'cancel': 'Cancelar', 'player': 'Jugador', 'ai': 'IA',
         'searching': 'Buscando partida', 'code_hint': 'CÓDIGO', 'close': 'Cerrar', 'game_over': 'Fin del Juego',
-        'wins': 'gana!', 'rematch': 'Revancha (R)', 'menu': 'Menú (M)'
+        'wins': 'gana!', 'rematch': 'Revancha (R)', 'menu': 'Menú (M)',
+        '2player': '🎮 2 JUGADORES', 'system_diagnostics': 'Diagnósticos del Sistema', 'hosting_game': 'Creando Partida',
+        'share_code': 'Compartir código:', 'or_ip': 'O IP:', 'waiting_player': 'Esperando jugador',
+        'player_connected': '¡Jugador Conectado!', 'internet': 'Internet:'
     }
 }
 # ============================================================================
@@ -2307,7 +2313,7 @@ class Game:
         
         # 2-Player button / Botón de 2 jugadores
         twoplay_y = base_y + len(self.difficulties) * spacing + 50
-        twoplay_text = self.font.render("🎮 2 PLAYER", True, (255, 200, 50))
+        twoplay_text = self.font.render(self.t('2player'), True, (255, 200, 50))
         twoplay_rect = twoplay_text.get_rect(center=(cx, twoplay_y))
         twoplay_hit = pygame.Rect(twoplay_rect.left - 40, twoplay_rect.top - 10, twoplay_rect.width + 80, twoplay_rect.height + 20)
         
@@ -2555,7 +2561,7 @@ class Game:
             status_rect = status_text.get_rect(center=(cx, public_y + 95))
             self.screen.blit(status_text, status_rect)
         back_y = SCREEN_HEIGHT - 100
-        back_text = self.font.render("Back", True, (220, 230, 255))
+        back_text = self.font.render(self.t('back'), True, (220, 230, 255))
         back_rect = back_text.get_rect(center=(cx, back_y))
         arrow_x = back_rect.left - 35
         arrow_y = back_y
@@ -2721,7 +2727,7 @@ class Game:
         self._draw_background()
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        title = self.large_font.render("System Diagnostics", True, (180, 220, 255))
+        title = self.large_font.render(self.t('system_diagnostics'), True, (180, 220, 255))
         title_rect = title.get_rect(center=(cx, 60))
         self.screen.blit(title, title_rect)
         y_offset = 140
@@ -2769,7 +2775,7 @@ class Game:
         pygame.draw.rect(self.screen, (*summary_color[:3], pulse), glow_box, border_radius=15)
         self.screen.blit(summary, summary_rect)
         close_y = SCREEN_HEIGHT - 40
-        close_text = self.small_font.render("Close", True, (200, 210, 230))
+        close_text = self.small_font.render(self.t('close'), True, (200, 210, 230))
         close_rect = close_text.get_rect(center=(cx, close_y))
         close_hit = pygame.Rect(close_rect.left - 25, close_rect.top - 8, close_rect.width + 50, close_rect.height + 16)
         close_hovered = hasattr(self, '_diag_close_hover') and self._diag_close_hover
@@ -2795,7 +2801,7 @@ class Game:
         self._draw_background()
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        title = self.large_font.render("Hosting Game", True, (150, 255, 180))
+        title = self.large_font.render(self.t('hosting_game'), True, (150, 255, 180))
         title_rect = title.get_rect(center=(cx, 150))
         self.screen.blit(title, title_rect)
         if self.network_host:
@@ -2809,13 +2815,13 @@ class Game:
             lan_title = self.font.render("LAN (Same WiFi):", True, (120, 255, 140))
             self.screen.blit(lan_title, lan_title.get_rect(center=(cx, y)))
             y += 30
-            lan_code = self.small_font.render(f"Share code: {self.network_host.code}", True, (200, 220, 255))
+            lan_code = self.small_font.render(f"{self.t('share_code')} {self.network_host.code}", True, (200, 220, 255))
             self.screen.blit(lan_code, lan_code.get_rect(center=(cx, y)))
             y += 22
-            lan_ip = self.small_font.render(f"Or IP: {self.network_host.local_ip}:5555", True, (180, 200, 220))
+            lan_ip = self.small_font.render(f"{self.t('or_ip')} {self.network_host.local_ip}:5555", True, (180, 200, 220))
             self.screen.blit(lan_ip, lan_ip.get_rect(center=(cx, y)))
             y += 40
-            net_title = self.font.render("Internet:", True, (255, 200, 120))
+            net_title = self.font.render(self.t('internet'), True, (255, 200, 120))
             self.screen.blit(net_title, net_title.get_rect(center=(cx, y)))
             y += 30
             if self.network_host.external_ip:
@@ -2828,15 +2834,15 @@ class Game:
                 net_error = self.small_font.render("(Can't detect external IP)", True, (255, 150, 150))
                 self.screen.blit(net_error, net_error.get_rect(center=(cx, y)))
             dots = "." * (int(t * 2) % 4)
-            waiting_text = self.font.render(f"Waiting for player{dots}", True, (180, 190, 220))
+            waiting_text = self.font.render(f"{self.t('waiting_player')}{dots}", True, (180, 190, 220))
             waiting_rect = waiting_text.get_rect(center=(cx, 420))
             self.screen.blit(waiting_text, waiting_rect)
             if self.network_host.connected:
-                conn_text = self.large_font.render("Player Connected!", True, (120, 255, 140))
+                conn_text = self.large_font.render(self.t('player_connected'), True, (120, 255, 140))
                 conn_rect = conn_text.get_rect(center=(cx, SCREEN_HEIGHT // 2))
                 self.screen.blit(conn_text, conn_rect)
         cancel_y = SCREEN_HEIGHT - 100
-        cancel_text = self.font.render("Cancel", True, (255, 180, 180))
+        cancel_text = self.font.render(self.t('cancel'), True, (255, 180, 180))
         cancel_rect = cancel_text.get_rect(center=(cx, cancel_y))
         cancel_hit = pygame.Rect(cancel_rect.left - 40, cancel_rect.top - 12, cancel_rect.width + 80, cancel_rect.height + 24)
         cancel_hovered = hasattr(self, '_cancel_hover') and self._cancel_hover
@@ -3017,8 +3023,8 @@ class Game:
             player_label = self.small_font.render("Player 1", True, (200, 210, 230))
             ai_label = self.small_font.render("Player 2", True, (200, 210, 230))
         else:
-            player_label = self.small_font.render("Player", True, (200, 210, 230))
-            ai_label = self.small_font.render("AI", True, (200, 210, 230))
+            player_label = self.small_font.render(self.t('player'), True, (200, 210, 230))
+            ai_label = self.small_font.render(self.t('ai'), True, (200, 210, 230))
         
         self.screen.blit(player_label, (SCREEN_WIDTH // 4 - player_label.get_width() // 2, 80))
         self.screen.blit(ai_label, (3 * SCREEN_WIDTH // 4 - ai_label.get_width() // 2, 80))
@@ -3122,26 +3128,26 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.state == "diagnostics":
-                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos):
+                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                     elif self.state == "settings":
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.toggle_fullscreen()
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.toggle_audio()
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
                             save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
                             self.settings_fullscreen_hover = False
                     elif self.state == "multiplayer":
-                        if hasattr(self, '_host_button_rect') and self._host_button_rect.collidepoint(event.pos):
+                        if hasattr(self, '_host_button_rect') and self._host_button_rect and self._host_button_rect.collidepoint(event.pos):
                             self.network_host = NetworkHost()
                             if self.network_host.start():
                                 self.multiplayer_mode = 'host'
@@ -3162,9 +3168,9 @@ class Game:
                                     print(f"[Game] Matchmaking registration error: {e}")
                             else:
                                 self.multiplayer_status = "Failed to start host - Port may be in use"
-                        elif hasattr(self, '_input_box_rect') and self._input_box_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_input_box_rect') and self._input_box_rect and self._input_box_rect.collidepoint(event.pos):
                             self._input_active = True
-                        elif hasattr(self, '_join_button_rect') and self._join_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_join_button_rect') and self._join_button_rect and self._join_button_rect.collidepoint(event.pos):
                             if self.join_code_input:
                                 self.multiplayer_status = "Resolving code..."
                                 try:
@@ -3193,7 +3199,7 @@ class Game:
                                 except Exception as e:
                                     print(f"[Game] Join error: {e}")
                                     self.multiplayer_status = f"Error: {str(e)}"
-                        elif hasattr(self, '_public_button_rect') and self._public_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_public_button_rect') and self._public_button_rect and self._public_button_rect.collidepoint(event.pos):
                             self.searching_public = True
                             self.search_start_time = time.time()
                             self.multiplayer_status = "Connecting to matchmaking..."
@@ -3234,7 +3240,7 @@ class Game:
                                 print(f"[Game] Public matchmaking error: {e}")
                                 self.multiplayer_status = f"Matchmaking error: {str(e)}"
                                 self.searching_public = False
-                        elif hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect and self._mp_back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.join_code_input = ""
@@ -3242,7 +3248,7 @@ class Game:
                             self._input_active = False
                             self.searching_public = False
                     elif self.state == "host_waiting":
-                        if hasattr(self, '_cancel_button_rect') and self._cancel_button_rect.collidepoint(event.pos):
+                        if hasattr(self, '_cancel_button_rect') and self._cancel_button_rect and self._cancel_button_rect.collidepoint(event.pos):
                             if self.network_host:
                                 self.network_host.close()
                                 self.network_host = None
@@ -3250,20 +3256,20 @@ class Game:
                             self.state = "multiplayer"
                             self.multiplayer_status = ""
                             self._mp_game_started = False
-                    if self.state == "menu":
-                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos):
+                    elif self.state == "menu":
+                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos):
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
-                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos):
                             # Start 2-player game / Iniciar juego de 2 jugadores
                             self.game_mode = "2player"
                             self._start_game()
-                        elif hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos):
                             self.state = "multiplayer"
                             self.menu_phase = 0.0
                             self.multiplayer_status = ""
-                        elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos):
                             self.run_diagnostics()
                             self.state = "diagnostics"
                         else:
@@ -3286,10 +3292,10 @@ class Game:
                     self.dragging = False
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
-                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
-                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos)
-                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
-                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
+                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos)
+                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos)
+                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
                         for rect, idx in self.difficulty_hitboxes:
                             if rect.collidepoint(event.pos):
@@ -3298,26 +3304,26 @@ class Game:
                     elif self.state == "settings":
                         self.settings_hover_item = None
                         self.settings_fullscreen_hover = False
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.settings_fullscreen_hover = True
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "audio_toggle"
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.settings_hover_item = "back"
                     elif self.state == "diagnostics":
-                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos)
+                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos)
                     elif self.state == "multiplayer":
-                        self._mp_host_hover = hasattr(self, '_host_button_rect') and self._host_button_rect.collidepoint(event.pos)
-                        self._join_btn_hover = hasattr(self, '_join_button_rect') and self._join_button_rect.collidepoint(event.pos)
-                        self._public_btn_hover = hasattr(self, '_public_button_rect') and self._public_button_rect.collidepoint(event.pos)
-                        self._mp_back_hover = hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect.collidepoint(event.pos)
-                        self._input_active = hasattr(self, '_input_box_rect') and self._input_box_rect.collidepoint(event.pos)
+                        self._mp_host_hover = hasattr(self, '_host_button_rect') and self._host_button_rect and self._host_button_rect.collidepoint(event.pos)
+                        self._join_btn_hover = hasattr(self, '_join_button_rect') and self._join_button_rect and self._join_button_rect.collidepoint(event.pos)
+                        self._public_btn_hover = hasattr(self, '_public_button_rect') and self._public_button_rect and self._public_button_rect.collidepoint(event.pos)
+                        self._mp_back_hover = hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect and self._mp_back_button_rect.collidepoint(event.pos)
+                        self._input_active = hasattr(self, '_input_box_rect') and self._input_box_rect and self._input_box_rect.collidepoint(event.pos)
                     elif self.state == "host_waiting":
-                        self._cancel_hover = hasattr(self, '_cancel_button_rect') and self._cancel_button_rect.collidepoint(event.pos)
+                        self._cancel_hover = hasattr(self, '_cancel_button_rect') and self._cancel_button_rect and self._cancel_button_rect.collidepoint(event.pos)
                     elif self.dragging and self.state == "playing":
                         new_y = event.pos[1] - self.drag_offset
                         self.player.y = max(0.0, min(SCREEN_HEIGHT - self.player.height, new_y))
@@ -3488,36 +3494,36 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.state == "diagnostics":
-                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos):
+                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                     elif self.state == "settings":
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.toggle_fullscreen()
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.toggle_audio()
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
                             save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
                             self.settings_fullscreen_hover = False
                     # Note: Multiplayer disabled in web mode (no socket support)
                     # Nota: Multijugador deshabilitado en modo web (sin soporte de sockets)
-                    if self.state == "menu":
-                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos):
+                    elif self.state == "menu":
+                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos):
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
-                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos):
                             # Start 2-player game / Iniciar juego de 2 jugadores
                             self.game_mode = "2player"
                             self._start_game()
-                        elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos):
                             self.run_diagnostics()
                             self.state = "diagnostics"
                         else:
@@ -3540,10 +3546,10 @@ class Game:
                     self.dragging = False
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
-                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
-                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect.collidepoint(event.pos)
-                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
-                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
+                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos)
+                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos)
+                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
                         for rect, idx in self.difficulty_hitboxes:
                             if rect.collidepoint(event.pos):
@@ -3552,18 +3558,18 @@ class Game:
                     elif self.state == "settings":
                         self.settings_hover_item = None
                         self.settings_fullscreen_hover = False
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.settings_fullscreen_hover = True
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "audio_toggle"
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.settings_hover_item = "back"
                     elif self.state == "diagnostics":
-                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos)
+                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos)
                     elif self.dragging and self.state == "playing":
                         new_y = event.pos[1] - self.drag_offset
                         self.player.y = max(0.0, min(SCREEN_HEIGHT - self.player.height, new_y))
