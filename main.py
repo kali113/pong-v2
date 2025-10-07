@@ -68,7 +68,7 @@ TRANSLATIONS = {
         'waiting': 'Waiting for player...', 'host_code': 'Host Code:', 'cancel': 'Cancel', 'player': 'Player', 'ai': 'AI',
         'searching': 'Searching for match', 'code_hint': 'CODE', 'close': 'Close', 'game_over': 'Game Over',
         'wins': 'wins!', 'rematch': 'Rematch (R)', 'menu': 'Menu (M)', 
-        '2player': '🎮 2 PLAYER', 'system_diagnostics': 'System Diagnostics', 'hosting_game': 'Hosting Game',
+        '2player': '2 PLAYER', 'system_diagnostics': 'System Diagnostics', 'hosting_game': 'Hosting Game',
         'share_code': 'Share code:', 'or_ip': 'Or IP:', 'waiting_player': 'Waiting for player', 
         'player_connected': 'Player Connected!', 'internet': 'Internet:'
     },
@@ -81,7 +81,7 @@ TRANSLATIONS = {
         'waiting': 'Esperando jugador...', 'host_code': 'Código:', 'cancel': 'Cancelar', 'player': 'Jugador', 'ai': 'IA',
         'searching': 'Buscando partida', 'code_hint': 'CÓDIGO', 'close': 'Cerrar', 'game_over': 'Fin del Juego',
         'wins': 'gana!', 'rematch': 'Revancha (R)', 'menu': 'Menú (M)',
-        '2player': '🎮 2 JUGADORES', 'system_diagnostics': 'Diagnósticos del Sistema', 'hosting_game': 'Creando Partida',
+        '2player': '2 JUGADORES', 'system_diagnostics': 'Diagnósticos del Sistema', 'hosting_game': 'Creando Partida',
         'share_code': 'Compartir código:', 'or_ip': 'O IP:', 'waiting_player': 'Esperando jugador',
         'player_connected': '¡Jugador Conectado!', 'internet': 'Internet:'
     }
@@ -2212,95 +2212,85 @@ class Game:
     
     def _draw_modern_button(self, text, x, y, hovered=False, scale=1.0, glow_color=(100, 200, 255), font_size=None):
         """
-        Draw modern gradient button with glow effect and crisp text.
-        Dibujar botón moderno con gradiente, efecto de brillo y texto nítido.
+        CLEAN, ELEGANT button - NO ugly boxes! Subtle and beautiful.
+        Botón LIMPIO y ELEGANTE - ¡SIN cajas feas! Sutil y hermoso.
         
-        Args / Argumentos:
-            text (str): Button text / Texto del botón
-            x, y (float): Center position / Posición central
-            hovered (bool): Hover state / Estado de hover
-            scale (float): Scale multiplier for animations / Multiplicador de escala para animaciones
-            glow_color (tuple): RGB glow color / Color RGB del brillo
-            font_size (int): Optional font size override / Tamaño de fuente opcional
-        
-        Returns / Retorna:
-            pygame.Rect: Button hitbox / Hitbox del botón
+        Inspired by minimalist game UIs - focus on text, subtle effects only.
+        Inspirado en UIs minimalistas de juegos - enfoque en texto, efectos sutiles solamente.
         """
-        # Use scaled font size for crisp rendering / Usar tamaño de fuente escalado para renderizado nítido
         if font_size is None:
-            font_size = int(28 * scale)
+            font_size = int(26 * scale)
         
         font = pygame.font.Font(None, font_size)
-        text_surf = font.render(text, True, (255, 255, 255))
-        text_w, text_h = text_surf.get_size()
+        text_w, text_h = font.size(text)
         
-        # Calculate button dimensions with padding / Calcular dimensiones con padding
-        padding_x = int(50 * scale)
-        padding_y = int(20 * scale)
+        # Smaller padding - more compact, less boxy
+        padding_x = int(40 * scale)
+        padding_y = int(14 * scale)
         btn_w = text_w + padding_x * 2
         btn_h = text_h + padding_y * 2
         btn_x = int(x - btn_w / 2)
         btn_y = int(y - btn_h / 2)
         
-        # Create button rect / Crear rectángulo del botón
         btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
         
-        # Draw shadow first / Dibujar sombra primero
-        shadow_surf = pygame.Surface((btn_w + 6, btn_h + 6), pygame.SRCALPHA)
-        pygame.draw.rect(shadow_surf, (0, 0, 0, 60), shadow_surf.get_rect(), border_radius=14)
-        self.screen.blit(shadow_surf, (btn_x + 3, btn_y + 4))
-        
-        # Draw glow effect when hovered / Dibujar efecto de brillo al hacer hover
+        # SUBTLE background - barely visible, not a harsh box
+        bg_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
         if hovered:
-            glow_surf = pygame.Surface((btn_w + 30, btn_h + 30), pygame.SRCALPHA)
-            for i in range(6):
-                alpha = int(50 - i * 8)
-                expand = i * 5
-                glow_rect = pygame.Rect(expand, expand, btn_w + 30 - expand * 2, btn_h + 30 - expand * 2)
-                pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_rect, border_radius=16)
-            self.screen.blit(glow_surf, (btn_x - 15, btn_y - 15))
-        
-        # Draw gradient background / Dibujar fondo con gradiente
-        btn_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
-        for i in range(btn_h):
-            t = i / btn_h
-            if hovered:
-                # Brighter gradient when hovered / Gradiente más brillante al hacer hover
-                r = int(glow_color[0] * (0.35 + 0.25 * t))
-                g = int(glow_color[1] * (0.35 + 0.25 * t))
-                b = int(glow_color[2] * (0.65 + 0.25 * t))
-                alpha = 240
-            else:
-                # Darker subtle gradient / Gradiente sutil más oscuro
-                r = int(45 + 25 * t)
-                g = int(55 + 25 * t)
-                b = int(85 + 35 * t)
-                alpha = 230
-            pygame.draw.line(btn_surf, (r, g, b, alpha), (0, i), (btn_w, i))
-        
-        # Draw inner highlight / Dibujar resaltado interior
-        highlight = pygame.Surface((btn_w, btn_h // 3), pygame.SRCALPHA)
-        for i in range(btn_h // 3):
-            alpha = int(30 * (1 - i / (btn_h // 3)))
-            pygame.draw.line(highlight, (255, 255, 255, alpha), (0, i), (btn_w, i))
-        btn_surf.blit(highlight, (0, 0))
-        
-        # Draw border with depth / Dibujar borde con profundidad
-        if hovered:
-            border_color = (*glow_color, 255)
-            border_width = 3
+            # Soft colored tint when hovered
+            base_alpha = 80
+            for i in range(btn_h):
+                t = i / btn_h
+                r = int(glow_color[0] * (0.2 + 0.15 * t))
+                g = int(glow_color[1] * (0.2 + 0.15 * t))
+                b = int(glow_color[2] * (0.3 + 0.2 * t))
+                alpha = base_alpha + int(20 * t)
+                pygame.draw.line(bg_surf, (r, g, b, alpha), (0, i), (btn_w, i))
         else:
-            border_color = (90, 100, 140, 200)
+            # Very subtle dark background - almost invisible
+            for i in range(btn_h):
+                t = i / btn_h
+                gray = 25 + int(15 * t)
+                alpha = 120 + int(30 * t)
+                pygame.draw.line(bg_surf, (gray, gray + 5, gray + 15, alpha), (0, i), (btn_w, i))
+        
+        # Rounded corners for softness
+        pygame.draw.rect(bg_surf, (0, 0, 0, 0), bg_surf.get_rect(), border_radius=12)
+        self.screen.blit(bg_surf, (btn_x, btn_y))
+        
+        # Soft pastel glow when hovered - beautiful and subtle
+        if hovered:
+            glow_surf = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
+            for i in range(4):
+                alpha = 40 - i * 9
+                if alpha > 0:
+                    expand = i * 4
+                    rect = pygame.Rect(expand, expand, glow_surf.get_width() - expand * 2, glow_surf.get_height() - expand * 2)
+                    pygame.draw.rect(glow_surf, (*glow_color, alpha), rect, border_radius=14)
+            self.screen.blit(glow_surf, (btn_x - 10, btn_y - 10))
+        
+        # Pastel border - soft and elegant
+        if hovered:
+            border_color = (*glow_color, 160)  # Brighter pastel when hovered
             border_width = 2
+        else:
+            # Softer pastel border when not hovered
+            border_color = (int(glow_color[0] * 0.6), int(glow_color[1] * 0.6), int(glow_color[2] * 0.6), 100)
+            border_width = 1
         
-        pygame.draw.rect(btn_surf, border_color, btn_surf.get_rect(), width=border_width, border_radius=13)
+        border_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        pygame.draw.rect(border_surf, border_color, border_surf.get_rect(), width=border_width, border_radius=11)
+        self.screen.blit(border_surf, (btn_x, btn_y))
         
-        self.screen.blit(btn_surf, (btn_x, btn_y))
+        # Text - the STAR of the button, not the box!
+        text_color = (255, 255, 255) if hovered else (200, 210, 230)
+        text_surf = font.render(text, True, text_color)
         
-        # Draw text centered with slight shadow / Dibujar texto centrado con ligera sombra
-        text_shadow = font.render(text, True, (0, 0, 0, 180))
-        shadow_rect = text_shadow.get_rect(center=(x + 1, y + 2))
-        self.screen.blit(text_shadow, shadow_rect)
+        # Subtle text shadow for depth
+        if hovered:
+            shadow_surf = font.render(text, True, (0, 0, 0, 100))
+            shadow_rect = shadow_surf.get_rect(center=(x + 1, y + 1))
+            self.screen.blit(shadow_surf, shadow_rect)
         
         text_rect = text_surf.get_rect(center=(x, y))
         self.screen.blit(text_surf, text_rect)
@@ -2384,89 +2374,129 @@ class Game:
         self.screen.blit(demo_surface, (0, 0))
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        # Use pixel art logo instead of text
-        logo_rect = self.title_logo.get_rect(center=(cx, 80 + 10 * math.sin(t * 1.5)))
+        # PROPERLY CENTERED pixel art logo
+        logo_rect = self.title_logo.get_rect(center=(SCREEN_WIDTH // 2, 80 + 10 * math.sin(t * 1.5)))
         self.screen.blit(self.title_logo, logo_rect)
         subtitle = self.font.render(self.t('subtitle'), True, YELLOW)
         subtitle_rect = subtitle.get_rect(center=(cx, 140 + 8 * math.sin(t * 2.2)))
         self.screen.blit(subtitle, subtitle_rect)
-        base_y = 200
-        spacing = 55
+        # CLEAN, MINIMAL DESIGN - Everything fits on screen (720px height)
+        # Inspired by clean game UIs - no ugly boxes, just beautiful text
+        base_y = 190  # Slightly higher to fit everything
+        spacing = 48  # Tighter but still clean
         self.difficulty_hitboxes = []
         if self.menu_hover_index is not None and not (0 <= self.menu_hover_index < len(self.difficulties)):
             self.menu_hover_index = None
         diff_labels = [self.t('easy'), self.t('medium'), self.t('hard')]
+        
         for idx in range(len(self.difficulties)):
-            y, active, hovered = base_y + idx * spacing, idx == self.diff_index, idx == self.menu_hover_index
-            color = WHITE if active else ((210, 220, 255) if hovered else (170, 180, 200))
+            y = base_y + idx * spacing
+            active = idx == self.diff_index
+            hovered = idx == self.menu_hover_index
+            
+            # Clean colors - white when active, soft fade when not
+            if active:
+                color = (255, 255, 255)
+            elif hovered:
+                color = (220, 230, 255)
+            else:
+                color = (140, 155, 180)
+            
             text = self.font.render(diff_labels[idx], True, color)
             text_rect = text.get_rect(center=(cx, y))
+            
+            # Subtle highlight for active - NO UGLY BOXES
             if active:
-                pulse = 110 + int(40 * math.sin(t * 3))
-                highlight = pygame.Surface((text_rect.width + 120, text_rect.height + 24), pygame.SRCALPHA)
-                pygame.draw.rect(highlight, (40, 150, 255, pulse), highlight.get_rect(), border_radius=18)
-                highlight_rect = highlight.get_rect(center=text_rect.center)
-                self.screen.blit(highlight, highlight_rect)
-                arrow_color = (255, 255, 255, 220)
-                pygame.draw.polygon(self.screen, arrow_color, [(highlight_rect.left - 18, y), (highlight_rect.left - 6, y - 12), (highlight_rect.left - 6, y + 12)])
-                pygame.draw.polygon(self.screen, arrow_color, [(highlight_rect.right + 18, y), (highlight_rect.right + 6, y - 12), (highlight_rect.right + 6, y + 12)])
-                hit_rect = highlight_rect.inflate(12, 12)
+                # Soft pulsing glow behind text
+                pulse = 80 + int(30 * math.sin(t * 3))
+                glow_size = (text_rect.width + 80, text_rect.height + 16)
+                glow_surf = pygame.Surface(glow_size, pygame.SRCALPHA)
+                
+                # Multiple soft glow layers - no hard edges
+                for i in range(5):
+                    alpha = pulse - i * 15
+                    if alpha > 0:
+                        expand = i * 4
+                        glow_rect = pygame.Rect(expand, expand, glow_size[0] - expand * 2, glow_size[1] - expand * 2)
+                        pygame.draw.rect(glow_surf, (70, 150, 255, alpha), glow_rect, border_radius=14)
+                
+                glow_pos = (text_rect.centerx - glow_size[0] // 2, text_rect.centery - glow_size[1] // 2)
+                self.screen.blit(glow_surf, glow_pos)
+                
+                # Clean arrows
+                arrow_color = (200, 220, 255)
+                arrow_left = text_rect.left - 25
+                arrow_right = text_rect.right + 25
+                pygame.draw.polygon(self.screen, arrow_color, 
+                    [(arrow_left, y), (arrow_left + 8, y - 7), (arrow_left + 8, y + 7)])
+                pygame.draw.polygon(self.screen, arrow_color,
+                    [(arrow_right, y), (arrow_right - 8, y - 7), (arrow_right - 8, y + 7)])
+                hit_rect = text_rect.inflate(100, 20)
             elif hovered:
-                hover_rect = pygame.Rect(text_rect.left - 60, text_rect.top - 12, text_rect.width + 120, text_rect.height + 24)
-                glow = pygame.Surface((hover_rect.width, hover_rect.height), pygame.SRCALPHA)
-                pygame.draw.rect(glow, (60, 160, 255, 80), glow.get_rect(), border_radius=18)
-                self.screen.blit(glow, hover_rect)
-                hit_rect = hover_rect
+                # Very subtle hover glow - no boxes!
+                hover_surf = pygame.Surface((text_rect.width + 70, text_rect.height + 14), pygame.SRCALPHA)
+                for i in range(3):
+                    alpha = 40 - i * 12
+                    expand = i * 3
+                    rect = pygame.Rect(expand, expand, hover_surf.get_width() - expand * 2, hover_surf.get_height() - expand * 2)
+                    pygame.draw.rect(hover_surf, (90, 160, 255, alpha), rect, border_radius=12)
+                hover_pos = (text_rect.centerx - hover_surf.get_width() // 2, text_rect.centery - hover_surf.get_height() // 2)
+                self.screen.blit(hover_surf, hover_pos)
+                hit_rect = text_rect.inflate(70, 14)
             else:
-                hit_rect = pygame.Rect(text_rect.left - 60, text_rect.top - 12, text_rect.width + 120, text_rect.height + 24)
+                hit_rect = text_rect.inflate(70, 14)
+            
             self.difficulty_hitboxes.append((hit_rect, idx))
             self.screen.blit(text, text_rect)
-        hint = self.font.render(self.t('difficulty_hint'), True, (190, 190, 200))
-        hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing))
+        
+        # Hint text - smaller, subtle
+        hint = self.small_font.render(self.t('difficulty_hint'), True, (110, 125, 150))
+        hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing + 18))
         self.screen.blit(hint, hint_rect)
         
-        # Modern button section with proper spacing / Sección de botones modernos con espaciado adecuado
-        button_start_y = base_y + len(self.difficulties) * spacing + 60
-        button_spacing = 70
+        # BUTTONS - Compact layout to fit everything on screen
+        button_start_y = base_y + len(self.difficulties) * spacing + 55
+        button_spacing = 52  # Tighter spacing - everything must fit!
         
-        # 2-Player button / Botón de 2 jugadores
+        # NO EMOJIS - they show as squares! Use text only + beautiful pastel colors
+        # 2-Player button - pastel yellow #DCF763 (220, 247, 99)
         twoplay_y = button_start_y
         twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
         btn_scale = self._get_button_scale('2player', twoplay_hovered)
         if '2player' not in self.button_scales:
             self.button_scales['2player'] = 1.0
         self._2player_button_rect = self._draw_modern_button(
-            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (255, 200, 50)
+            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (220, 247, 99)
         )
         
-        # Multiplayer button / Botón multijugador
+        # Multiplayer button - pastel orange #EB5E28 (235, 94, 40)
         mp_y = button_start_y + button_spacing
         mp_hovered = hasattr(self, '_mp_button_hover') and self._mp_button_hover
         mp_scale = self._get_button_scale('multiplayer', mp_hovered)
         if 'multiplayer' not in self.button_scales:
             self.button_scales['multiplayer'] = 1.0
         self._mp_button_rect = self._draw_modern_button(
-            "🌐 " + self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (100, 200, 255)
+            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (235, 94, 40)
         )
         
-        # Settings button / Botón de configuración
+        # Settings button - pastel pink #EFA9AE (239, 169, 174)
         settings_y = button_start_y + button_spacing * 2
         settings_hovered = hasattr(self, '_settings_button_hover') and self._settings_button_hover
         settings_scale = self._get_button_scale('settings', settings_hovered)
         if 'settings' not in self.button_scales:
             self.button_scales['settings'] = 1.0
         self._settings_button_rect = self._draw_modern_button(
-            "⚙️ " + self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (150, 180, 255)
+            self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (239, 169, 174)
         )
         
-        # Diagnostics button (smaller, subtle) / Botón diagnósticos (más pequeño, sutil)
-        test_y = settings_y + 60
+        # Diagnostics button (smaller) - FIX OVERLAP: move higher!
+        test_y = button_start_y + button_spacing * 3 + 5  # Reduced from +10
         test_hovered = hasattr(self, '_test_button_hover') and self._test_button_hover
-        test_scale = self._get_button_scale('diagnostics', test_hovered) * 0.85
+        test_scale = self._get_button_scale('diagnostics', test_hovered) * 0.75  # Smaller
         if 'diagnostics' not in self.button_scales:
-            self.button_scales['diagnostics'] = 0.85
+            self.button_scales['diagnostics'] = 0.75
         self._test_button_rect = self._draw_modern_button(
-            self.t('diagnostics'), cx, test_y, test_hovered, test_scale, (120, 140, 180), font_size=22
+            self.t('diagnostics'), cx, test_y, test_hovered, test_scale, (180, 200, 220), font_size=19
         )
         self.menu_phase = min(self.menu_phase + self.dt, 1.0)
         fade = max(0.0, 1.0 - self.menu_phase)
@@ -2516,14 +2546,14 @@ class Game:
         toggle_y = 480
         self.screen.blit(self.font.render(self.t('hud'), True, WHITE), self.font.render(self.t('hud'), True, WHITE).get_rect(center=(cx - 80, toggle_y)))
         self._debug_toggle_rect = self._draw_toggle(cx + 120, toggle_y, self.show_debug_hud, self.settings_hover_item == "debug_toggle")
-        # Modern back button / Botón de volver moderno
-        back_y = SCREEN_HEIGHT - 120
+        # Back button - NO EMOJI! Pastel pink #EFA9AE, higher position to avoid overlap
+        back_y = SCREEN_HEIGHT - 100  # Higher to prevent overlap
         back_hovered = self.settings_hover_item == "back"
         back_scale = self._get_button_scale('settings_back', back_hovered)
         if 'settings_back' not in self.button_scales:
             self.button_scales['settings_back'] = 1.0
         self._back_button_rect = self._draw_modern_button(
-            "← " + self.t('back'), cx, back_y, back_hovered, back_scale, (120, 160, 255)
+            "< " + self.t('back'), cx, back_y, back_hovered, back_scale, (239, 169, 174)
         )
         
         # Draw fade-in overlay BEFORE display.flip() / Dibujar overlay de fade ANTES de display.flip()
