@@ -86,7 +86,6 @@ class AsyncGameWrapper:
 
             # State-specific updates (mirroring _run_sync logic)
             if self.game.state == "playing":
-                print(f"[Web Debug] Updating playing state")
                 self.game.player.move(self.game.player_move_dir, self.game.dt)
                 self.game.ai_move()
                 self.game.ai.move(self.game.ai_move_dir, self.game.dt)
@@ -95,24 +94,18 @@ class AsyncGameWrapper:
                 self.game.update_particles(self.game.dt)
                 self.game.draw()
             elif self.game.state == "menu":
-                print(f"[Web Debug] Updating menu state")
                 self.game.update_demo_game(self.game.dt)
                 self.game.draw_menu()
             elif self.game.state == "settings":
-                print(f"[Web Debug] Drawing settings")
                 self.game.draw_settings()
             elif self.game.state == "diagnostics":
-                print(f"[Web Debug] Drawing diagnostics")
                 self.game.draw_diagnostics()
             elif self.game.state == "multiplayer":
-                print(f"[Web Debug] Drawing multiplayer menu")
                 # Multiplayer disabled in web, but draw the menu anyway
                 self.game.draw_multiplayer_menu()
             elif self.game.state == "host_waiting":
-                print(f"[Web Debug] Drawing host waiting")
                 self.game.draw_host_waiting()
             elif self.game.state == "gameover":
-                print(f"[Web Debug] Drawing gameover")
                 self.game.draw()
 
             # Update display

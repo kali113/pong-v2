@@ -1483,13 +1483,23 @@ class Game:
         """
         Toggle fullscreen mode and save setting.
         Alternar modo pantalla completa y guardar configuración.
+        
+        Note: In web/browser mode, fullscreen may be restricted by browser security.
+        Nota: En modo web/navegador, pantalla completa puede estar restringida por seguridad del navegador.
         """
-        self.fullscreen = not self.fullscreen
-        if self.fullscreen:
-            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
-        else:
-            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        try:
+            self.fullscreen = not self.fullscreen
+            if self.fullscreen:
+                # Try FULLSCREEN with SCALED for best compatibility
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
+            else:
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        except pygame.error as e:
+            # Fullscreen might fail in browser - fall back to windowed
+            print(f"[Warning] Fullscreen toggle failed: {e}")
+            self.fullscreen = False
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
     
     def toggle_audio(self):
         """
@@ -1729,14 +1739,15 @@ class Game:
         Create visual assets (background, vignette, scanlines, glow).
         Crear recursos visuales (fondo, viñeta, líneas de escaneo, brillo).
         """
-        # Create gradient background (dark blue-purple at top → lighter at bottom)
-        # Crear fondo con gradiente (azul-morado oscuro arriba → más claro abajo)
+        # Create gradient background - DARK GRAY #1E1E24 as requested by user
+        # Crear fondo con gradiente - GRIS OSCURO #1E1E24 como solicitó el usuario
         self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT  # Vertical position ratio / Ratio de posición vertical
-            r = int(24 + 40 * (1 - t))  # Red channel / Canal rojo
-            g = int(16 + 30 * (1 - t))  # Green channel / Canal verde
-            b = int(50 + 120 * t)  # Blue channel (increases downward) / Canal azul (aumenta hacia abajo)
+            # Start from #1E1E24 (30, 30, 36) at top → slightly lighter at bottom
+            r = int(30 + 15 * t)  # 30 → 45 dark gray
+            g = int(30 + 15 * t)  # 30 → 45
+            b = int(36 + 20 * t)  # 36 → 56 subtle blue tint
             pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
         
         # Create vignette effect (darkens edges) / Crear efecto viñeta (oscurece bordes)
@@ -2269,14 +2280,14 @@ class Game:
                     pygame.draw.rect(glow_surf, (*glow_color, alpha), rect, border_radius=14)
             self.screen.blit(glow_surf, (btn_x - 10, btn_y - 10))
         
-        # Pastel border - soft and elegant
+        # Pastel border - BOLDER for better visibility (2-3px)
         if hovered:
-            border_color = (*glow_color, 160)  # Brighter pastel when hovered
-            border_width = 2
+            border_color = (*glow_color, 180)  # Brighter pastel when hovered
+            border_width = 3  # Bolder
         else:
             # Softer pastel border when not hovered
-            border_color = (int(glow_color[0] * 0.6), int(glow_color[1] * 0.6), int(glow_color[2] * 0.6), 100)
-            border_width = 1
+            border_color = (int(glow_color[0] * 0.7), int(glow_color[1] * 0.7), int(glow_color[2] * 0.7), 140)
+            border_width = 2  # Bolder
         
         border_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
         pygame.draw.rect(border_surf, border_color, border_surf.get_rect(), width=border_width, border_radius=11)
@@ -2369,15 +2380,18 @@ class Game:
         self.demo_player.draw(demo_surface)
         self.demo_ai.draw(demo_surface)
         self.demo_ball.draw(demo_surface)
-        [pygame.draw.rect(demo_surface, (100, 150, 200, 80), (SCREEN_WIDTH // 2 - 3, i, 6, 10), border_radius=3) for i in range(0, SCREEN_HEIGHT, 16)]
-        demo_surface.set_alpha(60)
+        # Draw center line segments with individual alpha (no square artifacts)
+        for i in range(0, SCREEN_HEIGHT, 16):
+            pygame.draw.rect(demo_surface, (100, 150, 200, 40), (SCREEN_WIDTH // 2 - 3, i, 6, 10), border_radius=3)
+        demo_surface.set_alpha(30)  # Lower alpha to reduce visibility
         self.screen.blit(demo_surface, (0, 0))
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
         # PROPERLY CENTERED pixel art logo
         logo_rect = self.title_logo.get_rect(center=(SCREEN_WIDTH // 2, 80 + 10 * math.sin(t * 1.5)))
         self.screen.blit(self.title_logo, logo_rect)
-        subtitle = self.font.render(self.t('subtitle'), True, YELLOW)
+        # Subtitle in pastel sage green #A0AF84 (160, 175, 132)
+        subtitle = self.font.render(self.t('subtitle'), True, (160, 175, 132))
         subtitle_rect = subtitle.get_rect(center=(cx, 140 + 8 * math.sin(t * 2.2)))
         self.screen.blit(subtitle, subtitle_rect)
         # CLEAN, MINIMAL DESIGN - Everything fits on screen (720px height)
@@ -2459,14 +2473,14 @@ class Game:
         button_spacing = 52  # Tighter spacing - everything must fit!
         
         # NO EMOJIS - they show as squares! Use text only + beautiful pastel colors
-        # 2-Player button - pastel yellow #DCF763 (220, 247, 99)
+        # 2-Player button - pastel orange/yellow #EE964B (238, 150, 75)
         twoplay_y = button_start_y
         twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
         btn_scale = self._get_button_scale('2player', twoplay_hovered)
         if '2player' not in self.button_scales:
             self.button_scales['2player'] = 1.0
         self._2player_button_rect = self._draw_modern_button(
-            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (220, 247, 99)
+            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (238, 150, 75)
         )
         
         # Multiplayer button - pastel orange #EB5E28 (235, 94, 40)
