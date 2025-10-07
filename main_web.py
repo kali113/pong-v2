@@ -3,7 +3,7 @@
 # Browser-playable version using WebAssembly
 # ============================================================================
 
-__version__ = "1.0.0-pre-alpha-web"
+__version__ = "pre-alpha-web"
 
 import asyncio
 import sys
