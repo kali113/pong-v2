@@ -1327,8 +1327,22 @@ class Game:
         self.language = saved.get('language', 'en')
         self.theme = saved.get('theme', 'dark')  # Theme: 'dark' or 'light' / Tema: 'oscuro' o 'claro'
         
+        # Detect if running in web/browser environment
+        try:
+            import platform
+            IS_WEB_ENV = platform.system() == "Emscripten"
+        except:
+            IS_WEB_ENV = False
+        
         # Create window with appropriate mode / Crear ventana con modo apropiado
-        if self.fullscreen:
+        if IS_WEB_ENV:
+            # In web mode, use existing display created by pygbag
+            # En modo web, usar pantalla existente creada por pygbag
+            self.screen = pygame.display.get_surface()
+            if self.screen is None:
+                # Fallback: create display if not already initialized
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        elif self.fullscreen:
             # SCALED mode maintains aspect ratio in fullscreen
             # Modo SCALED mantiene la proporción en pantalla completa
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
@@ -1336,25 +1350,28 @@ class Game:
             # Hardware surface for better performance in windowed mode
             # Superficie de hardware para mejor rendimiento en modo ventana
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-        pygame.display.set_caption("Pong AI - Incredible Edition")
         
-        # Set window icon (32x32 colorful pong scene) / Configurar ícono de ventana (escena pong colorida 32x32)
-        icon = create_window_icon()
-        pygame.display.set_icon(icon)
-        
-        # Save icon as .ico file for Windows taskbar (requires PIL/Pillow)
-        # Guardar ícono como archivo .ico para barra de tareas de Windows (requiere PIL/Pillow)
-        try:
-            from PIL import Image
-            icon_path = Path(__file__).parent / 'icon.ico'
-            # Convert pygame surface to PIL Image / Convertir superficie pygame a imagen PIL
-            icon_str = pygame.image.tostring(icon, 'RGBA')
-            pil_icon = Image.frombytes('RGBA', icon.get_size(), icon_str)
-            pil_icon.save(str(icon_path), format='ICO', sizes=[(32, 32)])
-        except Exception:
-            # PIL not installed or error during conversion - not critical
-            # PIL no instalado o error durante conversión - no crítico
-            pass
+        if not IS_WEB_ENV:
+            pygame.display.set_caption("Pong AI - Incredible Edition")
+            
+            # Set window icon (32x32 colorful pong scene) - Desktop only
+            # Configurar ícono de ventana (escena pong colorida 32x32) - Solo escritorio
+            icon = create_window_icon()
+            pygame.display.set_icon(icon)
+            
+            # Save icon as .ico file for Windows taskbar (requires PIL/Pillow)
+            # Guardar ícono como archivo .ico para barra de tareas de Windows (requiere PIL/Pillow)
+            try:
+                from PIL import Image
+                icon_path = Path(__file__).parent / 'icon.ico'
+                # Convert pygame surface to PIL Image / Convertir superficie pygame a imagen PIL
+                icon_str = pygame.image.tostring(icon, 'RGBA')
+                pil_icon = Image.frombytes('RGBA', icon.get_size(), icon_str)
+                pil_icon.save(str(icon_path), format='ICO', sizes=[(32, 32)])
+            except Exception:
+                # PIL not installed or error during conversion - not critical
+                # PIL no instalado o error durante conversión - no crítico
+                pass
         
         # Create pixel art title logo for menu / Crear logo pixel art para menú
         self.title_logo = create_title_logo()
