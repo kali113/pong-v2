@@ -1541,10 +1541,10 @@ class Game:
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT
             if self.theme == 'light':
-                # Light mode: Pastel beige #C3B59F (195,181,159)
-                r = int(195 - 20 * t)  # 195 → 175
-                g = int(181 - 20 * t)  # 181 → 161
-                b = int(159 - 20 * t)  # 159 → 139
+                # Light mode: Darker gray-brown #8B7E74 (139,126,116) for better contrast
+                r = int(139 - 25 * t)  # 139 → 114
+                g = int(126 - 22 * t)  # 126 → 104
+                b = int(116 - 20 * t)  # 116 → 96
             else:
                 # Dark mode: Dark gray #1E1E24 (30,30,36)
                 r = int(30 + 15 * t)  # 30 → 45
