@@ -1,10 +1,10 @@
 # ============================================================================
-# PONG AI V2 - NEON EDITION v1.0.0-alpha
-# A modern Pong game with AI, multiplayer, particle effects, and translations
-# Un juego moderno de Pong con IA, multijugador, efectos de partículas y traducciones
+# PONG AI V2 - NEON EDITION v1.0.0-pre-alpha
+# A modern Pong game with AI, multiplayer, power-ups, particle effects, and translations
+# Un juego moderno de Pong con IA, multijugador, power-ups, efectos de partículas y traducciones
 # ============================================================================
 
-__version__ = "1.0.0-alpha"
+__version__ = "1.0.0-pre-alpha"
 
 # Standard library imports / Importaciones de biblioteca estándar
 import asyncio    # Async/await support for web / Soporte async/await para web
@@ -63,21 +63,27 @@ TRANSLATIONS = {
         'title': 'Pong AI', 'subtitle': 'SPACE / ENTER to start', 'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard',
         'difficulty_hint': 'Click or use UP/DOWN / W-S to change difficulty', 'multiplayer': 'Multiplayer',
         'settings': 'Settings', 'diagnostics': 'Run Diagnostics', 'fullscreen': 'Fullscreen:', 'audio': 'Audio Effects:',
-        'hud': 'Performance HUD:', 'language': 'Language:', 'back': 'Back', 'host_game': 'Host Game',
+        'hud': 'Performance HUD:', 'language': 'Language:', 'theme': 'Theme:', 'dark_mode': 'Dark', 'light_mode': 'Light', 'back': 'Back', 'host_game': 'Host Game',
         'join_private': 'Join Private Game:', 'join': 'Join', 'or': 'OR', 'find_public': 'Find Public Match',
         'waiting': 'Waiting for player...', 'host_code': 'Host Code:', 'cancel': 'Cancel', 'player': 'Player', 'ai': 'AI',
         'searching': 'Searching for match', 'code_hint': 'CODE', 'close': 'Close', 'game_over': 'Game Over',
-        'wins': 'wins!', 'rematch': 'Rematch (R)', 'menu': 'Menu (M)'
+        'wins': 'wins!', 'rematch': 'Rematch (R)', 'menu': 'Menu (M)', 
+        '2player': '2 PLAYER', 'system_diagnostics': 'System Diagnostics', 'hosting_game': 'Hosting Game',
+        'share_code': 'Share code:', 'or_ip': 'Or IP:', 'waiting_player': 'Waiting for player', 
+        'player_connected': 'Player Connected!', 'internet': 'Internet:'
     },
     'es': {  # Spanish translations / Traducciones en español
         'title': 'Pong IA', 'subtitle': 'ESPACIO / ENTER para iniciar', 'easy': 'Fácil', 'medium': 'Medio', 'hard': 'Difícil',
         'difficulty_hint': 'Clic o usa ARRIBA/ABAJO / W-S para cambiar dificultad', 'multiplayer': 'Multijugador',
         'settings': 'Configuración', 'diagnostics': 'Ejecutar Diagnósticos', 'fullscreen': 'Pantalla completa:', 'audio': 'Efectos de audio:',
-        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'back': 'Volver', 'host_game': 'Crear Partida',
+        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'theme': 'Tema:', 'dark_mode': 'Oscuro', 'light_mode': 'Claro', 'back': 'Volver', 'host_game': 'Crear Partida',
         'join_private': 'Unirse a Partida Privada:', 'join': 'Unirse', 'or': 'O', 'find_public': 'Buscar Partida Pública',
         'waiting': 'Esperando jugador...', 'host_code': 'Código:', 'cancel': 'Cancelar', 'player': 'Jugador', 'ai': 'IA',
         'searching': 'Buscando partida', 'code_hint': 'CÓDIGO', 'close': 'Cerrar', 'game_over': 'Fin del Juego',
-        'wins': 'gana!', 'rematch': 'Revancha (R)', 'menu': 'Menú (M)'
+        'wins': 'gana!', 'rematch': 'Revancha (R)', 'menu': 'Menú (M)',
+        '2player': '2 JUGADORES', 'system_diagnostics': 'Diagnósticos del Sistema', 'hosting_game': 'Creando Partida',
+        'share_code': 'Compartir código:', 'or_ip': 'O IP:', 'waiting_player': 'Esperando jugador',
+        'player_connected': '¡Jugador Conectado!', 'internet': 'Internet:'
     }
 }
 # ============================================================================
@@ -113,10 +119,11 @@ def load_settings():
         'debug_hud': False,   # Performance overlay off / Overlay de rendimiento desactivado
         'difficulty': 1,      # Medium AI / IA Media
         'audio_enabled': True,  # Sound effects on / Efectos de sonido activados
-        'language': 'en'      # English by default / Inglés por defecto
+        'language': 'en',     # English by default / Inglés por defecto
+        'theme': 'dark'       # Dark mode by default / Modo oscuro por defecto
     }
 
-def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en'):
+def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en', theme='dark'):
     """
     Save user settings to JSON file.
     Guardar configuración del usuario en archivo JSON.
@@ -136,8 +143,9 @@ def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en
                 'debug_hud': debug_hud,
                 'difficulty': difficulty,
                 'audio_enabled': audio_enabled,
-                'language': language
-            }, f)
+                'language': language,
+                'theme': theme
+            }, f, indent=2)
     except IOError:
         pass  # Unable to save settings / No se puede guardar configuración
 
@@ -305,29 +313,32 @@ class NetworkHost:
         """
         Accept incoming client connections (background thread).
         Aceptar conexiones entrantes de clientes (hilo en segundo plano).
-        
+
         Note / Nota:
             Runs in daemon thread until first client connects or server stops
             Se ejecuta en hilo daemon hasta que conecte el primer cliente o se detenga el servidor
         """
+        print("[Debug Network] Accept loop started")
         while self.running and not self.connected:
             try:
                 # Wait for client connection / Esperar conexión de cliente
-                client, _ = self.socket.accept()
-                
+                client, addr = self.socket.accept()
+                print(f"[Debug Network] Client connected from {addr}")
+
                 # Set short timeout for receive operations
                 # Establecer timeout corto para operaciones de recepción
                 client.settimeout(0.1)
-                
+
                 self.client_socket = client
                 self.connected = True
-                
+
                 # Start receive loop in new thread / Iniciar bucle de recepción en nuevo hilo
                 threading.Thread(target=self._recv_loop, daemon=True).start()
                 break
             except socket.timeout:
                 continue  # No connection yet, retry / Sin conexión aún, reintentar
-            except (socket.error, OSError):
+            except (socket.error, OSError) as e:
+                print(f"[Debug Network] Accept loop error: {e}")
                 break  # Socket error, stop accepting / Error de socket, detener aceptación
     
     def _recv_loop(self):
@@ -1308,6 +1319,7 @@ class Game:
         self.fullscreen = saved.get('fullscreen', False)
         self.audio_enabled = saved.get('audio_enabled', True)
         self.language = saved.get('language', 'en')
+        self.theme = saved.get('theme', 'dark')  # Theme: 'dark' or 'light' / Tema: 'oscuro' o 'claro'
         
         # Create window with appropriate mode / Crear ventana con modo apropiado
         if self.fullscreen:
@@ -1428,8 +1440,16 @@ class Game:
         # Input state / Estado de entrada
         self.player_move_dir = 0.0  # Player movement direction / Dirección de movimiento del jugador
         self.ai_move_dir = 0.0  # AI movement direction / Dirección de movimiento de la IA
+        self.player2_move_dir = 0.0  # Player 2 movement direction (2-player mode) / Dirección de movimiento del jugador 2 (modo 2 jugadores)
         self.dragging = False  # Mouse drag active / Arrastre de ratón activo
         self.drag_offset = 0.0  # Mouse drag offset / Offset de arrastre de ratón
+        
+        # Button animation state / Estado de animación de botones
+        self.button_scales = {}  # Smooth button hover scales / Escalas suaves de hover de botones
+        self.button_target_scales = {}  # Target scales for animations / Escalas objetivo para animaciones
+        
+        # Game mode / Modo de juego
+        self.game_mode = "single"  # "single" or "2player" / "single" o "2player"
         
         # Frame timing / Temporización de fotogramas
         self.dt = 0.016  # Delta time (60 FPS target) / Delta de tiempo (objetivo 60 FPS)
@@ -1466,13 +1486,23 @@ class Game:
         """
         Toggle fullscreen mode and save setting.
         Alternar modo pantalla completa y guardar configuración.
+        
+        Note: In web/browser mode, fullscreen may be restricted by browser security.
+        Nota: En modo web/navegador, pantalla completa puede estar restringida por seguridad del navegador.
         """
-        self.fullscreen = not self.fullscreen
-        if self.fullscreen:
-            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
-        else:
-            self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        try:
+            self.fullscreen = not self.fullscreen
+            if self.fullscreen:
+                # Try FULLSCREEN with SCALED for best compatibility
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
+            else:
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
+        except pygame.error as e:
+            # Fullscreen might fail in browser - fall back to windowed
+            print(f"[Warning] Fullscreen toggle failed: {e}")
+            self.fullscreen = False
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def toggle_audio(self):
         """
@@ -1482,7 +1512,7 @@ class Game:
         self.audio_enabled = not self.audio_enabled
         if not self.audio_enabled:
             pygame.mixer.stop()  # Stop all sounds / Detener todos los sonidos
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def toggle_language(self):
         """
@@ -1490,7 +1520,33 @@ class Game:
         Alternar entre inglés y español.
         """
         self.language = 'es' if self.language == 'en' else 'en'
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
+    
+    def toggle_theme(self):
+        """
+        Toggle between dark and light mode.
+        Alternar entre modo oscuro y claro.
+        """
+        self.theme = 'light' if self.theme == 'dark' else 'dark'
+        print(f"[Theme] Switched to {self.theme} mode")  # Debug
+        
+        # RECREATE base background surface with new theme colors
+        self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        for y in range(SCREEN_HEIGHT):
+            t = y / SCREEN_HEIGHT
+            if self.theme == 'light':
+                # Light mode: Pastel beige #C3B59F (195,181,159)
+                r = int(195 - 20 * t)  # 195 → 175
+                g = int(181 - 20 * t)  # 181 → 161
+                b = int(159 - 20 * t)  # 159 → 139
+            else:
+                # Dark mode: Dark gray #1E1E24 (30,30,36)
+                r = int(30 + 15 * t)  # 30 → 45
+                g = int(30 + 15 * t)  # 30 → 45
+                b = int(36 + 20 * t)  # 36 → 56
+            pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
+        
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def _play_sound(self, sound):
         """
@@ -1541,20 +1597,29 @@ class Game:
     
     def handle_input(self):
         """
-        Handle keyboard input for player movement.
-        Manejar entrada de teclado para movimiento del jugador.
+        Handle keyboard input for player movement (1 or 2 players).
+        Manejar entrada de teclado para movimiento del jugador (1 o 2 jugadores).
         """
         keys = pygame.key.get_pressed()
         if self.state == "playing":
+            # Player 1 controls (left paddle) - W/S keys / Controles Jugador 1 (paleta izquierda) - teclas W/S
             dir_y = 0.0
             if not self.dragging:
-                # W/Up arrow = move up / W/Flecha arriba = mover arriba
-                if keys[pygame.K_w] or keys[pygame.K_UP]:
+                if keys[pygame.K_w]:
                     dir_y -= 1.0
-                # S/Down arrow = move down / S/Flecha abajo = mover abajo
-                if keys[pygame.K_s] or keys[pygame.K_DOWN]:
+                if keys[pygame.K_s]:
                     dir_y += 1.0
             self.player_move_dir = dir_y if not self.dragging else 0.0
+            
+            # Player 2 controls (right paddle) - Arrow keys (2-player mode only)
+            # Controles Jugador 2 (paleta derecha) - flechas (solo modo 2 jugadores)
+            if self.game_mode == "2player":
+                p2_dir = 0.0
+                if keys[pygame.K_UP]:
+                    p2_dir -= 1.0
+                if keys[pygame.K_DOWN]:
+                    p2_dir += 1.0
+                self.player2_move_dir = p2_dir
             
             # ESC = open settings / ESC = abrir configuración
             if keys[pygame.K_ESCAPE]:
@@ -1703,14 +1768,21 @@ class Game:
         Create visual assets (background, vignette, scanlines, glow).
         Crear recursos visuales (fondo, viñeta, líneas de escaneo, brillo).
         """
-        # Create gradient background (dark blue-purple at top → lighter at bottom)
-        # Crear fondo con gradiente (azul-morado oscuro arriba → más claro abajo)
+        # Create gradient background based on theme / Crear fondo con gradiente según tema
+        # Dark mode: #1E1E24 (30,30,36), Light mode: #C3B59F (195,181,159)
         self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT  # Vertical position ratio / Ratio de posición vertical
-            r = int(24 + 40 * (1 - t))  # Red channel / Canal rojo
-            g = int(16 + 30 * (1 - t))  # Green channel / Canal verde
-            b = int(50 + 120 * t)  # Blue channel (increases downward) / Canal azul (aumenta hacia abajo)
+            if self.theme == 'light':
+                # Light mode: Pastel beige #C3B59F
+                r = int(195 - 20 * t)  # 195 → 175 warm beige
+                g = int(181 - 20 * t)  # 181 → 161
+                b = int(159 - 20 * t)  # 159 → 139
+            else:
+                # Dark mode: Dark gray #1E1E24
+                r = int(30 + 15 * t)  # 30 → 45 dark gray
+                g = int(30 + 15 * t)  # 30 → 45
+                b = int(36 + 20 * t)  # 36 → 56 subtle blue tint
             pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
         
         # Create vignette effect (darkens edges) / Crear efecto viñeta (oscurece bordes)
@@ -1810,9 +1882,12 @@ class Game:
         """
         if not self.particles:
             return
+        particle_count = len(self.particles)
+        print(f"[Debug] Clearing {particle_count} particles")
         for particle in self.particles:
             self.particle_pool.release(particle)
         self.particles.clear()
+        print(f"[Debug] Particles cleared, pool size: {len(self.particle_pool._pool)}")
     
     def create_particles(self, x, y, color):
         """
@@ -2168,6 +2243,106 @@ class Game:
             
             y_offset += 70
     
+    def _update_button_animations(self):
+        """Update smooth button hover animations / Actualizar animaciones suaves de hover de botones"""
+        for btn_id in list(self.button_scales.keys()):
+            target = self.button_target_scales.get(btn_id, 1.0)
+            current = self.button_scales[btn_id]
+            # Smooth lerp towards target / Interpolación suave hacia objetivo
+            self.button_scales[btn_id] = current + (target - current) * min(1.0, self.dt * 12.0)
+    
+    def _get_button_scale(self, btn_id, hovered):
+        """Get animated button scale / Obtener escala animada del botón"""
+        self.button_target_scales[btn_id] = 1.08 if hovered else 1.0
+        return self.button_scales.get(btn_id, 1.0)
+    
+    def _draw_modern_button(self, text, x, y, hovered=False, scale=1.0, glow_color=(100, 200, 255), font_size=None):
+        """
+        CLEAN, ELEGANT button - NO ugly boxes! Subtle and beautiful.
+        Botón LIMPIO y ELEGANTE - ¡SIN cajas feas! Sutil y hermoso.
+        
+        Inspired by minimalist game UIs - focus on text, subtle effects only.
+        Inspirado en UIs minimalistas de juegos - enfoque en texto, efectos sutiles solamente.
+        """
+        if font_size is None:
+            font_size = int(26 * scale)
+        
+        font = pygame.font.Font(None, font_size)
+        text_w, text_h = font.size(text)
+        
+        # Smaller padding - more compact, less boxy
+        padding_x = int(40 * scale)
+        padding_y = int(14 * scale)
+        btn_w = text_w + padding_x * 2
+        btn_h = text_h + padding_y * 2
+        btn_x = int(x - btn_w / 2)
+        btn_y = int(y - btn_h / 2)
+        
+        btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        
+        # SUBTLE background - barely visible, not a harsh box
+        bg_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        if hovered:
+            # Soft colored tint when hovered
+            base_alpha = 80
+            for i in range(btn_h):
+                t = i / btn_h
+                r = int(glow_color[0] * (0.2 + 0.15 * t))
+                g = int(glow_color[1] * (0.2 + 0.15 * t))
+                b = int(glow_color[2] * (0.3 + 0.2 * t))
+                alpha = base_alpha + int(20 * t)
+                pygame.draw.line(bg_surf, (r, g, b, alpha), (0, i), (btn_w, i))
+        else:
+            # Very subtle dark background - almost invisible
+            for i in range(btn_h):
+                t = i / btn_h
+                gray = 25 + int(15 * t)
+                alpha = 120 + int(30 * t)
+                pygame.draw.line(bg_surf, (gray, gray + 5, gray + 15, alpha), (0, i), (btn_w, i))
+        
+        # Rounded corners for softness
+        pygame.draw.rect(bg_surf, (0, 0, 0, 0), bg_surf.get_rect(), border_radius=12)
+        self.screen.blit(bg_surf, (btn_x, btn_y))
+        
+        # Soft pastel glow when hovered - beautiful and subtle
+        if hovered:
+            glow_surf = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
+            for i in range(4):
+                alpha = 40 - i * 9
+                if alpha > 0:
+                    expand = i * 4
+                    rect = pygame.Rect(expand, expand, glow_surf.get_width() - expand * 2, glow_surf.get_height() - expand * 2)
+                    pygame.draw.rect(glow_surf, (*glow_color, alpha), rect, border_radius=14)
+            self.screen.blit(glow_surf, (btn_x - 10, btn_y - 10))
+        
+        # Pastel border - BOLDER for better visibility (2-3px)
+        if hovered:
+            border_color = (*glow_color, 180)  # Brighter pastel when hovered
+            border_width = 3  # Bolder
+        else:
+            # Softer pastel border when not hovered
+            border_color = (int(glow_color[0] * 0.7), int(glow_color[1] * 0.7), int(glow_color[2] * 0.7), 140)
+            border_width = 2  # Bolder
+        
+        border_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        pygame.draw.rect(border_surf, border_color, border_surf.get_rect(), width=border_width, border_radius=11)
+        self.screen.blit(border_surf, (btn_x, btn_y))
+        
+        # Text - the STAR of the button, not the box!
+        text_color = (255, 255, 255) if hovered else (200, 210, 230)
+        text_surf = font.render(text, True, text_color)
+        
+        # Subtle text shadow for depth
+        if hovered:
+            shadow_surf = font.render(text, True, (0, 0, 0, 100))
+            shadow_rect = shadow_surf.get_rect(center=(x + 1, y + 1))
+            self.screen.blit(shadow_surf, shadow_rect)
+        
+        text_rect = text_surf.get_rect(center=(x, y))
+        self.screen.blit(text_surf, text_rect)
+        
+        return btn_rect
+    
     def _draw_toggle(self, x, y, enabled, hovered, switch_w=80, switch_h=36):
         """
         Draw iOS-style toggle switch.
@@ -2240,120 +2415,138 @@ class Game:
         self.demo_player.draw(demo_surface)
         self.demo_ai.draw(demo_surface)
         self.demo_ball.draw(demo_surface)
-        [pygame.draw.rect(demo_surface, (100, 150, 200, 80), (SCREEN_WIDTH // 2 - 3, i, 6, 10), border_radius=3) for i in range(0, SCREEN_HEIGHT, 16)]
-        demo_surface.set_alpha(60)
+        # Draw center line segments with individual alpha (no square artifacts)
+        for i in range(0, SCREEN_HEIGHT, 16):
+            pygame.draw.rect(demo_surface, (100, 150, 200, 40), (SCREEN_WIDTH // 2 - 3, i, 6, 10), border_radius=3)
+        demo_surface.set_alpha(30)  # Lower alpha to reduce visibility
         self.screen.blit(demo_surface, (0, 0))
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        # Use pixel art logo instead of text
-        logo_rect = self.title_logo.get_rect(center=(cx, 80 + 10 * math.sin(t * 1.5)))
+        # PROPERLY CENTERED pixel art logo
+        logo_rect = self.title_logo.get_rect(center=(SCREEN_WIDTH // 2, 80 + 10 * math.sin(t * 1.5)))
         self.screen.blit(self.title_logo, logo_rect)
-        subtitle = self.font.render(self.t('subtitle'), True, YELLOW)
+        # Subtitle in pastel sage green #A0AF84 (160, 175, 132)
+        subtitle = self.font.render(self.t('subtitle'), True, (160, 175, 132))
         subtitle_rect = subtitle.get_rect(center=(cx, 140 + 8 * math.sin(t * 2.2)))
         self.screen.blit(subtitle, subtitle_rect)
-        base_y = 200
-        spacing = 55
+        # CLEAN, MINIMAL DESIGN - Everything fits on screen (720px height)
+        # Inspired by clean game UIs - no ugly boxes, just beautiful text
+        base_y = 190  # Slightly higher to fit everything
+        spacing = 48  # Tighter but still clean
         self.difficulty_hitboxes = []
         if self.menu_hover_index is not None and not (0 <= self.menu_hover_index < len(self.difficulties)):
             self.menu_hover_index = None
         diff_labels = [self.t('easy'), self.t('medium'), self.t('hard')]
+        
         for idx in range(len(self.difficulties)):
-            y, active, hovered = base_y + idx * spacing, idx == self.diff_index, idx == self.menu_hover_index
-            color = WHITE if active else ((210, 220, 255) if hovered else (170, 180, 200))
+            y = base_y + idx * spacing
+            active = idx == self.diff_index
+            hovered = idx == self.menu_hover_index
+            
+            # Clean colors - white when active, soft fade when not
+            if active:
+                color = (255, 255, 255)
+            elif hovered:
+                color = (220, 230, 255)
+            else:
+                color = (140, 155, 180)
+            
             text = self.font.render(diff_labels[idx], True, color)
             text_rect = text.get_rect(center=(cx, y))
+            
+            # Subtle highlight for active - NO UGLY BOXES
             if active:
-                pulse = 110 + int(40 * math.sin(t * 3))
-                highlight = pygame.Surface((text_rect.width + 120, text_rect.height + 24), pygame.SRCALPHA)
-                pygame.draw.rect(highlight, (40, 150, 255, pulse), highlight.get_rect(), border_radius=18)
-                highlight_rect = highlight.get_rect(center=text_rect.center)
-                self.screen.blit(highlight, highlight_rect)
-                arrow_color = (255, 255, 255, 220)
-                pygame.draw.polygon(self.screen, arrow_color, [(highlight_rect.left - 18, y), (highlight_rect.left - 6, y - 12), (highlight_rect.left - 6, y + 12)])
-                pygame.draw.polygon(self.screen, arrow_color, [(highlight_rect.right + 18, y), (highlight_rect.right + 6, y - 12), (highlight_rect.right + 6, y + 12)])
-                hit_rect = highlight_rect.inflate(12, 12)
+                # Soft pulsing glow behind text
+                pulse = 80 + int(30 * math.sin(t * 3))
+                glow_size = (text_rect.width + 80, text_rect.height + 16)
+                glow_surf = pygame.Surface(glow_size, pygame.SRCALPHA)
+                
+                # Multiple soft glow layers - no hard edges
+                for i in range(5):
+                    alpha = pulse - i * 15
+                    if alpha > 0:
+                        expand = i * 4
+                        glow_rect = pygame.Rect(expand, expand, glow_size[0] - expand * 2, glow_size[1] - expand * 2)
+                        pygame.draw.rect(glow_surf, (70, 150, 255, alpha), glow_rect, border_radius=14)
+                
+                glow_pos = (text_rect.centerx - glow_size[0] // 2, text_rect.centery - glow_size[1] // 2)
+                self.screen.blit(glow_surf, glow_pos)
+                
+                # Clean arrows
+                arrow_color = (200, 220, 255)
+                arrow_left = text_rect.left - 25
+                arrow_right = text_rect.right + 25
+                pygame.draw.polygon(self.screen, arrow_color, 
+                    [(arrow_left, y), (arrow_left + 8, y - 7), (arrow_left + 8, y + 7)])
+                pygame.draw.polygon(self.screen, arrow_color,
+                    [(arrow_right, y), (arrow_right - 8, y - 7), (arrow_right - 8, y + 7)])
+                hit_rect = text_rect.inflate(100, 20)
             elif hovered:
-                hover_rect = pygame.Rect(text_rect.left - 60, text_rect.top - 12, text_rect.width + 120, text_rect.height + 24)
-                glow = pygame.Surface((hover_rect.width, hover_rect.height), pygame.SRCALPHA)
-                pygame.draw.rect(glow, (60, 160, 255, 80), glow.get_rect(), border_radius=18)
-                self.screen.blit(glow, hover_rect)
-                hit_rect = hover_rect
+                # Very subtle hover glow - no boxes!
+                hover_surf = pygame.Surface((text_rect.width + 70, text_rect.height + 14), pygame.SRCALPHA)
+                for i in range(3):
+                    alpha = 40 - i * 12
+                    expand = i * 3
+                    rect = pygame.Rect(expand, expand, hover_surf.get_width() - expand * 2, hover_surf.get_height() - expand * 2)
+                    pygame.draw.rect(hover_surf, (90, 160, 255, alpha), rect, border_radius=12)
+                hover_pos = (text_rect.centerx - hover_surf.get_width() // 2, text_rect.centery - hover_surf.get_height() // 2)
+                self.screen.blit(hover_surf, hover_pos)
+                hit_rect = text_rect.inflate(70, 14)
             else:
-                hit_rect = pygame.Rect(text_rect.left - 60, text_rect.top - 12, text_rect.width + 120, text_rect.height + 24)
+                hit_rect = text_rect.inflate(70, 14)
+            
             self.difficulty_hitboxes.append((hit_rect, idx))
             self.screen.blit(text, text_rect)
-        hint = self.font.render(self.t('difficulty_hint'), True, (190, 190, 200))
-        hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing))
+        
+        # Hint text - smaller, subtle
+        hint = self.small_font.render(self.t('difficulty_hint'), True, (110, 125, 150))
+        hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing + 18))
         self.screen.blit(hint, hint_rect)
-        mp_y = base_y + len(self.difficulties) * spacing + 60
-        mp_text = self.font.render(self.t('multiplayer'), True, (200, 220, 255))
-        mp_rect = mp_text.get_rect(center=(cx, mp_y))
-        icon_size = 28
-        icon_x = mp_rect.left - 42
-        icon_y = mp_y
-        icon_surf = pygame.Surface((icon_size, icon_size), pygame.SRCALPHA)
-        person_color = (180, 200, 255)
-        pygame.draw.circle(icon_surf, person_color, (7, 7), 4)
-        pygame.draw.circle(icon_surf, person_color, (21, 7), 4)
-        pygame.draw.rect(icon_surf, person_color, (4, 12, 6, 10), border_radius=3)
-        pygame.draw.rect(icon_surf, person_color, (18, 12, 6, 10), border_radius=3)
-        pygame.draw.line(icon_surf, person_color, (4, 14), (1, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (10, 14), (13, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (18, 14), (15, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (24, 14), (27, 18), 2)
-        mp_hit = pygame.Rect(mp_rect.left - 40, mp_rect.top - 10, mp_rect.width + 80, mp_rect.height + 20)
-        if hasattr(self, '_mp_button_hover') and self._mp_button_hover:
-            glow = pygame.Surface((mp_hit.width, mp_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 200, 255, 100), glow.get_rect(), border_radius=16)
-            self.screen.blit(glow, mp_hit)
-        self.screen.blit(icon_surf, (icon_x, icon_y - icon_size // 2))
-        self.screen.blit(mp_text, mp_rect)
-        self._mp_button_rect = mp_hit
-        settings_y = mp_y + 50
-        settings_text = self.font.render(self.t('settings'), True, (200, 210, 230))
-        settings_rect = settings_text.get_rect(center=(cx, settings_y))
-        gear_size = 24
-        gear_x = settings_rect.left - 40
-        gear_y = settings_y
-        gear_surf = pygame.Surface((gear_size, gear_size), pygame.SRCALPHA)
-        gear_center = gear_size // 2
-        gear_radius = 10
-        gear_color = (180, 200, 255)
-        gear_points = []
-        for i in range(6):
-            angle = math.pi / 3 * i
-            px = gear_center + int(gear_radius * math.cos(angle))
-            py = gear_center + int(gear_radius * math.sin(angle))
-            gear_points.append((px, py))
-        pygame.draw.polygon(gear_surf, gear_color, gear_points)
-        tooth_color = (200, 220, 255)
-        for i in range(6):
-            angle = math.pi / 3 * i + math.pi / 6
-            px1 = gear_center + int((gear_radius - 2) * math.cos(angle))
-            py1 = gear_center + int((gear_radius - 2) * math.sin(angle))
-            px2 = gear_center + int((gear_radius + 4) * math.cos(angle))
-            py2 = gear_center + int((gear_radius + 4) * math.sin(angle))
-            pygame.draw.line(gear_surf, tooth_color, (px1, py1), (px2, py2), 3)
-        pygame.draw.circle(gear_surf, (30, 20, 50), (gear_center, gear_center), 4)
-        settings_hit = pygame.Rect(gear_x - 10, settings_y - gear_size // 2 - 10, 
-                                   settings_rect.width + gear_size + 60, settings_rect.height + 20)
-        if hasattr(self, '_settings_button_hover') and self._settings_button_hover:
-            glow = pygame.Surface((settings_hit.width, settings_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 200, 255, 100), glow.get_rect(), border_radius=16)
-            self.screen.blit(glow, settings_hit)
-        self.screen.blit(gear_surf, (gear_x, gear_y - gear_size // 2))
-        self.screen.blit(settings_text, settings_rect)
-        self._settings_button_rect = settings_hit
-        test_y = settings_y + 50
-        test_text = self.small_font.render(self.t('diagnostics'), True, (180, 200, 220))
-        test_rect = test_text.get_rect(center=(cx, test_y))
-        test_hit = pygame.Rect(test_rect.left - 30, test_rect.top - 8, test_rect.width + 60, test_rect.height + 16)
-        if hasattr(self, '_test_button_hover') and self._test_button_hover:
-            glow = pygame.Surface((test_hit.width, test_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 180, 255, 80), glow.get_rect(), border_radius=12)
-            self.screen.blit(glow, test_hit)
-        self.screen.blit(test_text, test_rect)
-        self._test_button_rect = test_hit
+        
+        # BUTTONS - Compact layout to fit everything on screen
+        button_start_y = base_y + len(self.difficulties) * spacing + 55
+        button_spacing = 52  # Tighter spacing - everything must fit!
+        
+        # NO EMOJIS - they show as squares! Use text only + beautiful pastel colors
+        # 2-Player button - pastel orange/yellow #EE964B (238, 150, 75)
+        twoplay_y = button_start_y
+        twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
+        btn_scale = self._get_button_scale('2player', twoplay_hovered)
+        if '2player' not in self.button_scales:
+            self.button_scales['2player'] = 1.0
+        self._2player_button_rect = self._draw_modern_button(
+            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (238, 150, 75)
+        )
+        
+        # Multiplayer button - pastel beige #C3B59F (195, 181, 159)
+        mp_y = button_start_y + button_spacing
+        mp_hovered = hasattr(self, '_mp_button_hover') and self._mp_button_hover
+        mp_scale = self._get_button_scale('multiplayer', mp_hovered)
+        if 'multiplayer' not in self.button_scales:
+            self.button_scales['multiplayer'] = 1.0
+        self._mp_button_rect = self._draw_modern_button(
+            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (195, 181, 159)
+        )
+        
+        # Settings button - pastel pink #EFA9AE (239, 169, 174)
+        settings_y = button_start_y + button_spacing * 2
+        settings_hovered = hasattr(self, '_settings_button_hover') and self._settings_button_hover
+        settings_scale = self._get_button_scale('settings', settings_hovered)
+        if 'settings' not in self.button_scales:
+            self.button_scales['settings'] = 1.0
+        self._settings_button_rect = self._draw_modern_button(
+            self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (239, 169, 174)
+        )
+        
+        # Diagnostics button (smaller) - FIX OVERLAP: move higher!
+        test_y = button_start_y + button_spacing * 3 + 5  # Reduced from +10
+        test_hovered = hasattr(self, '_test_button_hover') and self._test_button_hover
+        test_scale = self._get_button_scale('diagnostics', test_hovered) * 0.75  # Smaller
+        if 'diagnostics' not in self.button_scales:
+            self.button_scales['diagnostics'] = 0.75
+        self._test_button_rect = self._draw_modern_button(
+            self.t('diagnostics'), cx, test_y, test_hovered, test_scale, (180, 200, 220), font_size=19
+        )
         self.menu_phase = min(self.menu_phase + self.dt, 1.0)
         fade = max(0.0, 1.0 - self.menu_phase)
         if fade > 0:
@@ -2399,31 +2592,35 @@ class Game:
         pygame.draw.rect(self.screen, (80, 120, 200, 120), lang_hit, 3, border_radius=12)
         self.screen.blit(lang_text, lang_rect)
         self._language_toggle_rect = lang_hit
-        toggle_y = 480
+        
+        # Theme toggle - Dark/Light mode selector
+        theme_y = 480
+        self.screen.blit(self.font.render(self.t('theme'), True, WHITE), self.font.render(self.t('theme'), True, WHITE).get_rect(center=(cx - 105, theme_y)))
+        theme_text = self.font.render(self.t('dark_mode') if self.theme == 'dark' else self.t('light_mode'), True, (195, 181, 159) if self.theme == 'light' else (100, 220, 255))
+        theme_rect = theme_text.get_rect(center=(cx + 120, theme_y))
+        theme_hit = pygame.Rect(theme_rect.left - 25, theme_rect.top - 10, theme_rect.width + 50, theme_rect.height + 20)
+        theme_hovered = self.settings_hover_item == "theme_toggle"
+        if theme_hovered:
+            glow = pygame.Surface((theme_hit.width, theme_hit.height), pygame.SRCALPHA)
+            pygame.draw.rect(glow, (195, 181, 159, 100) if self.theme == 'light' else (100, 220, 255, 100), glow.get_rect(), border_radius=12)
+            self.screen.blit(glow, theme_hit)
+        pygame.draw.rect(self.screen, (150, 140, 120, 120) if self.theme == 'light' else (80, 120, 200, 120), theme_hit, 3, border_radius=12)
+        self.screen.blit(theme_text, theme_rect)
+        self._theme_toggle_rect = theme_hit
+        
+        # HUD toggle - MOVED HIGHER to prevent back button overlap
+        toggle_y = 560  # Moved from 480 to 560
         self.screen.blit(self.font.render(self.t('hud'), True, WHITE), self.font.render(self.t('hud'), True, WHITE).get_rect(center=(cx - 80, toggle_y)))
         self._debug_toggle_rect = self._draw_toggle(cx + 120, toggle_y, self.show_debug_hud, self.settings_hover_item == "debug_toggle")
-        back_y = SCREEN_HEIGHT - 120
-        back_text = self.font.render(self.t('back'), True, (220, 230, 255))
-        back_rect = back_text.get_rect(center=(cx, back_y))
-        arrow_size = 20
-        arrow_x = back_rect.left - 35
-        arrow_y = back_y
-        arrow_color = (180, 220, 255)
-        arrow_points = [
-            (arrow_x, arrow_y),
-            (arrow_x + 12, arrow_y - 10),
-            (arrow_x + 12, arrow_y + 10)
-        ]
-        pygame.draw.polygon(self.screen, arrow_color, arrow_points)
-        pygame.draw.line(self.screen, arrow_color, (arrow_x + 8, arrow_y), (arrow_x + arrow_size + 5, arrow_y), 3)
-        back_hit = pygame.Rect(arrow_x - 10, back_rect.top - 12, back_rect.width + 70, back_rect.height + 24)
+        # Back button - NO EMOJI! Pastel pink #EFA9AE, at BOTTOM
+        back_y = SCREEN_HEIGHT - 60  # At bottom with proper spacing
         back_hovered = self.settings_hover_item == "back"
-        if back_hovered:
-            glow = pygame.Surface((back_hit.width, back_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (80, 160, 255, 100), glow.get_rect(), border_radius=18)
-            self.screen.blit(glow, back_hit)
-        self.screen.blit(back_text, back_rect)
-        self._back_button_rect = back_hit
+        back_scale = self._get_button_scale('settings_back', back_hovered)
+        if 'settings_back' not in self.button_scales:
+            self.button_scales['settings_back'] = 1.0
+        self._back_button_rect = self._draw_modern_button(
+            "< " + self.t('back'), cx, back_y, back_hovered, back_scale, (239, 169, 174)
+        )
         
         # Draw fade-in overlay BEFORE display.flip() / Dibujar overlay de fade ANTES de display.flip()
         # Note: This doesn't block input - pygame processes events before rendering
@@ -2518,7 +2715,7 @@ class Game:
             status_rect = status_text.get_rect(center=(cx, public_y + 95))
             self.screen.blit(status_text, status_rect)
         back_y = SCREEN_HEIGHT - 100
-        back_text = self.font.render("Back", True, (220, 230, 255))
+        back_text = self.font.render(self.t('back'), True, (220, 230, 255))
         back_rect = back_text.get_rect(center=(cx, back_y))
         arrow_x = back_rect.left - 35
         arrow_y = back_y
@@ -2684,7 +2881,7 @@ class Game:
         self._draw_background()
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        title = self.large_font.render("System Diagnostics", True, (180, 220, 255))
+        title = self.large_font.render(self.t('system_diagnostics'), True, (180, 220, 255))
         title_rect = title.get_rect(center=(cx, 60))
         self.screen.blit(title, title_rect)
         y_offset = 140
@@ -2732,7 +2929,7 @@ class Game:
         pygame.draw.rect(self.screen, (*summary_color[:3], pulse), glow_box, border_radius=15)
         self.screen.blit(summary, summary_rect)
         close_y = SCREEN_HEIGHT - 40
-        close_text = self.small_font.render("Close", True, (200, 210, 230))
+        close_text = self.small_font.render(self.t('close'), True, (200, 210, 230))
         close_rect = close_text.get_rect(center=(cx, close_y))
         close_hit = pygame.Rect(close_rect.left - 25, close_rect.top - 8, close_rect.width + 50, close_rect.height + 16)
         close_hovered = hasattr(self, '_diag_close_hover') and self._diag_close_hover
@@ -2758,7 +2955,7 @@ class Game:
         self._draw_background()
         cx = SCREEN_WIDTH // 2
         t = self.elapsed
-        title = self.large_font.render("Hosting Game", True, (150, 255, 180))
+        title = self.large_font.render(self.t('hosting_game'), True, (150, 255, 180))
         title_rect = title.get_rect(center=(cx, 150))
         self.screen.blit(title, title_rect)
         if self.network_host:
@@ -2772,13 +2969,13 @@ class Game:
             lan_title = self.font.render("LAN (Same WiFi):", True, (120, 255, 140))
             self.screen.blit(lan_title, lan_title.get_rect(center=(cx, y)))
             y += 30
-            lan_code = self.small_font.render(f"Share code: {self.network_host.code}", True, (200, 220, 255))
+            lan_code = self.small_font.render(f"{self.t('share_code')} {self.network_host.code}", True, (200, 220, 255))
             self.screen.blit(lan_code, lan_code.get_rect(center=(cx, y)))
             y += 22
-            lan_ip = self.small_font.render(f"Or IP: {self.network_host.local_ip}:5555", True, (180, 200, 220))
+            lan_ip = self.small_font.render(f"{self.t('or_ip')} {self.network_host.local_ip}:5555", True, (180, 200, 220))
             self.screen.blit(lan_ip, lan_ip.get_rect(center=(cx, y)))
             y += 40
-            net_title = self.font.render("Internet:", True, (255, 200, 120))
+            net_title = self.font.render(self.t('internet'), True, (255, 200, 120))
             self.screen.blit(net_title, net_title.get_rect(center=(cx, y)))
             y += 30
             if self.network_host.external_ip:
@@ -2791,15 +2988,15 @@ class Game:
                 net_error = self.small_font.render("(Can't detect external IP)", True, (255, 150, 150))
                 self.screen.blit(net_error, net_error.get_rect(center=(cx, y)))
             dots = "." * (int(t * 2) % 4)
-            waiting_text = self.font.render(f"Waiting for player{dots}", True, (180, 190, 220))
+            waiting_text = self.font.render(f"{self.t('waiting_player')}{dots}", True, (180, 190, 220))
             waiting_rect = waiting_text.get_rect(center=(cx, 420))
             self.screen.blit(waiting_text, waiting_rect)
             if self.network_host.connected:
-                conn_text = self.large_font.render("Player Connected!", True, (120, 255, 140))
+                conn_text = self.large_font.render(self.t('player_connected'), True, (120, 255, 140))
                 conn_rect = conn_text.get_rect(center=(cx, SCREEN_HEIGHT // 2))
                 self.screen.blit(conn_text, conn_rect)
         cancel_y = SCREEN_HEIGHT - 100
-        cancel_text = self.font.render("Cancel", True, (255, 180, 180))
+        cancel_text = self.font.render(self.t('cancel'), True, (255, 180, 180))
         cancel_rect = cancel_text.get_rect(center=(cx, cancel_y))
         cancel_hit = pygame.Rect(cancel_rect.left - 40, cancel_rect.top - 12, cancel_rect.width + 80, cancel_rect.height + 24)
         cancel_hovered = hasattr(self, '_cancel_hover') and self._cancel_hover
@@ -2827,9 +3024,9 @@ class Game:
         # Draw base gradient / Dibujar gradiente base
         self.screen.blit(self.base_background, (0, 0))
         
-        # Animated color tint / Tinte de color animado
+        # SUBTLE animated color tint - reduced alpha to show base background
         cycle = (math.sin(self.elapsed * 0.6) + 1) / 2
-        self._tint_surface.fill((int(30 + 120 * cycle), int(10 + 90 * (1 - cycle)), 180, 60))
+        self._tint_surface.fill((int(30 + 80 * cycle), int(10 + 60 * (1 - cycle)), 120, 20))  # Reduced alpha 60→20
         self.screen.blit(self._tint_surface, (0, 0), special_flags=pygame.BLEND_ADD)
         spacing = 40
         self.bg_offset = (self.bg_offset + 80 * self.dt) % spacing
@@ -2854,7 +3051,8 @@ class Game:
                 pygame.draw.line(self._sweep_surface, (200, 100, 255, alpha), (0, y), (SCREEN_WIDTH, y))
         sweep_y = int((math.sin(self.elapsed * 1.5) * 0.5 + 0.5) * (SCREEN_HEIGHT + sweep_height)) - sweep_height
         self.screen.blit(self._sweep_surface, (0, sweep_y), special_flags=pygame.BLEND_ADD)
-        glow_alpha = int(70 + 40 * math.sin(self.elapsed * 2))
+        # Reduced glow alpha to make background visible (70→40 base)
+        glow_alpha = int(40 + 30 * math.sin(self.elapsed * 2))
         self.center_glow.set_alpha(glow_alpha)
         self.screen.blit(self.center_glow, (0, 0), special_flags=pygame.BLEND_ADD)
         self.screen.blit(self.vignette, (0, 0))
@@ -2974,8 +3172,15 @@ class Game:
         self.screen.blit(r_shadow, (r_pos[0] + 3, r_pos[1] + 4))
         self.screen.blit(l_surf, l_pos)
         self.screen.blit(r_surf, r_pos)
-        player_label = self.small_font.render("Player", True, (200, 210, 230))
-        ai_label = self.small_font.render("AI", True, (200, 210, 230))
+        
+        # Dynamic labels for 2-player mode / Etiquetas dinámicas para modo 2 jugadores
+        if self.game_mode == "2player":
+            player_label = self.small_font.render("Player 1", True, (200, 210, 230))
+            ai_label = self.small_font.render("Player 2", True, (200, 210, 230))
+        else:
+            player_label = self.small_font.render(self.t('player'), True, (200, 210, 230))
+            ai_label = self.small_font.render(self.t('ai'), True, (200, 210, 230))
+        
         self.screen.blit(player_label, (SCREEN_WIDTH // 4 - player_label.get_width() // 2, 80))
         self.screen.blit(ai_label, (3 * SCREEN_WIDTH // 4 - ai_label.get_width() // 2, 80))
         if not hasattr(self, '_badge_cache'):
@@ -3001,7 +3206,13 @@ class Game:
             self._draw_performance_hud()
         if self.state == "gameover":
             self.gameover_phase = min(self.gameover_phase + self.dt * 1.5, 1.0)
-            winner = "Player" if self.player_score > self.ai_score else "AI"
+            
+            # Dynamic winner text for 2-player mode / Texto de ganador dinámico para modo 2 jugadores
+            if self.game_mode == "2player":
+                winner = "Player 1" if self.player_score > self.ai_score else "Player 2"
+            else:
+                winner = "Player" if self.player_score > self.ai_score else "AI"
+            
             fade_alpha = int(255 * 0.6 * self.gameover_phase)
             overlay_alpha = fade_alpha + int(40 * math.sin(self.elapsed * 2))
             overlay_alpha = max(0, min(220, overlay_alpha))
@@ -3056,40 +3267,47 @@ class Game:
         - "host_waiting": Waiting for client connection / Esperando conexión de cliente
         - "diagnostics": Network diagnostics / Diagnósticos de red
         """
+        # [SYNC LOOP MARKER] - For identifying this loop vs async
         self.player_move_dir = 0.0
         self.ai_move_dir = 0.0
+        self._2player_button_hover = False
         while True:
             dt_ms = self.clock.tick(60)
             self.dt = max(0.001, dt_ms / 1000.0)
             self.elapsed += self.dt
             self.shake_time, self.left_pop, self.right_pop = max(0.0, self.shake_time - self.dt), max(0.0, self.left_pop - self.dt), max(0.0, self.right_pop - self.dt)
             self.update_score_bursts(self.dt)
+            self._update_button_animations()  # Smooth button hover animations / Animaciones suaves de hover de botones
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.state == "diagnostics":
-                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos):
+                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                     elif self.state == "settings":
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.toggle_fullscreen()
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.toggle_audio()
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
                             self.settings_fullscreen_hover = False
                     elif self.state == "multiplayer":
-                        if hasattr(self, '_host_button_rect') and self._host_button_rect.collidepoint(event.pos):
+                        if hasattr(self, '_host_button_rect') and self._host_button_rect and self._host_button_rect.collidepoint(event.pos):
                             self.network_host = NetworkHost()
                             if self.network_host.start():
                                 self.multiplayer_mode = 'host'
@@ -3110,9 +3328,9 @@ class Game:
                                     print(f"[Game] Matchmaking registration error: {e}")
                             else:
                                 self.multiplayer_status = "Failed to start host - Port may be in use"
-                        elif hasattr(self, '_input_box_rect') and self._input_box_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_input_box_rect') and self._input_box_rect and self._input_box_rect.collidepoint(event.pos):
                             self._input_active = True
-                        elif hasattr(self, '_join_button_rect') and self._join_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_join_button_rect') and self._join_button_rect and self._join_button_rect.collidepoint(event.pos):
                             if self.join_code_input:
                                 self.multiplayer_status = "Resolving code..."
                                 try:
@@ -3141,7 +3359,7 @@ class Game:
                                 except Exception as e:
                                     print(f"[Game] Join error: {e}")
                                     self.multiplayer_status = f"Error: {str(e)}"
-                        elif hasattr(self, '_public_button_rect') and self._public_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_public_button_rect') and self._public_button_rect and self._public_button_rect.collidepoint(event.pos):
                             self.searching_public = True
                             self.search_start_time = time.time()
                             self.multiplayer_status = "Connecting to matchmaking..."
@@ -3182,7 +3400,7 @@ class Game:
                                 print(f"[Game] Public matchmaking error: {e}")
                                 self.multiplayer_status = f"Matchmaking error: {str(e)}"
                                 self.searching_public = False
-                        elif hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect and self._mp_back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.join_code_input = ""
@@ -3190,7 +3408,7 @@ class Game:
                             self._input_active = False
                             self.searching_public = False
                     elif self.state == "host_waiting":
-                        if hasattr(self, '_cancel_button_rect') and self._cancel_button_rect.collidepoint(event.pos):
+                        if hasattr(self, '_cancel_button_rect') and self._cancel_button_rect and self._cancel_button_rect.collidepoint(event.pos):
                             if self.network_host:
                                 self.network_host.close()
                                 self.network_host = None
@@ -3198,16 +3416,20 @@ class Game:
                             self.state = "multiplayer"
                             self.multiplayer_status = ""
                             self._mp_game_started = False
-                    if self.state == "menu":
-                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos):
+                    elif self.state == "menu":
+                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos):
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
-                        elif hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos):
+                            # Start 2-player game / Iniciar juego de 2 jugadores
+                            self.game_mode = "2player"
+                            self._start_game()
+                        elif hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos):
                             self.state = "multiplayer"
                             self.menu_phase = 0.0
                             self.multiplayer_status = ""
-                        elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos):
                             self.run_diagnostics()
                             self.state = "diagnostics"
                         else:
@@ -3219,7 +3441,7 @@ class Game:
                                         break
                             if target_idx is not None and target_idx != self.diff_index:
                                 self.diff_index = target_idx
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                             if target_idx is not None:
                                 self.menu_hover_index = target_idx
                     if self.state == "playing" and self._player_drag_rect().collidepoint(event.pos):
@@ -3230,9 +3452,10 @@ class Game:
                     self.dragging = False
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
-                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
-                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
-                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
+                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos)
+                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos)
+                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
                         for rect, idx in self.difficulty_hitboxes:
                             if rect.collidepoint(event.pos):
@@ -3241,26 +3464,28 @@ class Game:
                     elif self.state == "settings":
                         self.settings_hover_item = None
                         self.settings_fullscreen_hover = False
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.settings_fullscreen_hover = True
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "audio_toggle"
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.settings_hover_item = "theme_toggle"
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.settings_hover_item = "back"
                     elif self.state == "diagnostics":
-                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos)
+                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos)
                     elif self.state == "multiplayer":
-                        self._mp_host_hover = hasattr(self, '_host_button_rect') and self._host_button_rect.collidepoint(event.pos)
-                        self._join_btn_hover = hasattr(self, '_join_button_rect') and self._join_button_rect.collidepoint(event.pos)
-                        self._public_btn_hover = hasattr(self, '_public_button_rect') and self._public_button_rect.collidepoint(event.pos)
-                        self._mp_back_hover = hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect.collidepoint(event.pos)
-                        self._input_active = hasattr(self, '_input_box_rect') and self._input_box_rect.collidepoint(event.pos)
+                        self._mp_host_hover = hasattr(self, '_host_button_rect') and self._host_button_rect and self._host_button_rect.collidepoint(event.pos)
+                        self._join_btn_hover = hasattr(self, '_join_button_rect') and self._join_button_rect and self._join_button_rect.collidepoint(event.pos)
+                        self._public_btn_hover = hasattr(self, '_public_button_rect') and self._public_button_rect and self._public_button_rect.collidepoint(event.pos)
+                        self._mp_back_hover = hasattr(self, '_mp_back_button_rect') and self._mp_back_button_rect and self._mp_back_button_rect.collidepoint(event.pos)
+                        self._input_active = hasattr(self, '_input_box_rect') and self._input_box_rect and self._input_box_rect.collidepoint(event.pos)
                     elif self.state == "host_waiting":
-                        self._cancel_hover = hasattr(self, '_cancel_button_rect') and self._cancel_button_rect.collidepoint(event.pos)
+                        self._cancel_hover = hasattr(self, '_cancel_button_rect') and self._cancel_button_rect and self._cancel_button_rect.collidepoint(event.pos)
                     elif self.dragging and self.state == "playing":
                         new_y = event.pos[1] - self.drag_offset
                         self.player.y = max(0.0, min(SCREEN_HEIGHT - self.player.height, new_y))
@@ -3274,11 +3499,11 @@ class Game:
                         if event.key in (pygame.K_UP, pygame.K_w):
                             self.diff_index = (self.diff_index - 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_DOWN, pygame.K_s):
                             self.diff_index = (self.diff_index + 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self._start_game()
                     elif self.state == "settings":
@@ -3293,7 +3518,7 @@ class Game:
                                 self.toggle_audio()
                             else:
                                 self.show_debug_hud = not self.show_debug_hud
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                     elif self.state == "diagnostics":
                         if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self.state = "menu"
@@ -3411,14 +3636,17 @@ class Game:
         - Settings save may use localStorage instead of file I/O
         - Performance may be lower than desktop
         """
+        # [ASYNC LOOP MARKER] - For identifying this loop vs sync
         self.player_move_dir = 0.0
         self.ai_move_dir = 0.0
+        self._2player_button_hover = False
         while True:
             dt_ms = self.clock.tick(60)
             self.dt = max(0.001, dt_ms / 1000.0)
             self.elapsed += self.dt
             self.shake_time, self.left_pop, self.right_pop = max(0.0, self.shake_time - self.dt), max(0.0, self.left_pop - self.dt), max(0.0, self.right_pop - self.dt)
             self.update_score_bursts(self.dt)
+            self._update_button_animations()  # Smooth button hover animations / Animaciones suaves de hover de botones
             
             # Yield to browser event loop / Ceder al bucle de eventos del navegador
             await asyncio.sleep(0)
@@ -3429,32 +3657,40 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if self.state == "diagnostics":
-                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos):
+                        if hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                     elif self.state == "settings":
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.toggle_fullscreen()
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.toggle_audio()
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
                             self.settings_fullscreen_hover = False
                     # Note: Multiplayer disabled in web mode (no socket support)
                     # Nota: Multijugador deshabilitado en modo web (sin soporte de sockets)
-                    if self.state == "menu":
-                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos):
+                    elif self.state == "menu":
+                        if hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos):
                             self.state = "settings"
                             self.menu_phase = 0.0
                             self.settings_hover_item = None
-                        elif hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos):
+                            # Start 2-player game / Iniciar juego de 2 jugadores
+                            self.game_mode = "2player"
+                            self._start_game()
+                        elif hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos):
                             self.run_diagnostics()
                             self.state = "diagnostics"
                         else:
@@ -3466,7 +3702,7 @@ class Game:
                                         break
                             if target_idx is not None and target_idx != self.diff_index:
                                 self.diff_index = target_idx
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                             if target_idx is not None:
                                 self.menu_hover_index = target_idx
                     if self.state == "playing" and self._player_drag_rect().collidepoint(event.pos):
@@ -3477,9 +3713,10 @@ class Game:
                     self.dragging = False
                 if event.type == pygame.MOUSEMOTION:
                     if self.state == "menu":
-                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect.collidepoint(event.pos)
-                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect.collidepoint(event.pos)
-                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect.collidepoint(event.pos)
+                        self._settings_button_hover = hasattr(self, '_settings_button_rect') and self._settings_button_rect and self._settings_button_rect.collidepoint(event.pos)
+                        self._2player_button_hover = hasattr(self, '_2player_button_rect') and self._2player_button_rect and self._2player_button_rect.collidepoint(event.pos)
+                        self._mp_button_hover = hasattr(self, '_mp_button_rect') and self._mp_button_rect and self._mp_button_rect.collidepoint(event.pos)
+                        self._test_button_hover = hasattr(self, '_test_button_rect') and self._test_button_rect and self._test_button_rect.collidepoint(event.pos)
                         self.menu_hover_index = None
                         for rect, idx in self.difficulty_hitboxes:
                             if rect.collidepoint(event.pos):
@@ -3488,18 +3725,20 @@ class Game:
                     elif self.state == "settings":
                         self.settings_hover_item = None
                         self.settings_fullscreen_hover = False
-                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect.collidepoint(event.pos):
+                        if hasattr(self, '_fullscreen_toggle_rect') and self._fullscreen_toggle_rect and self._fullscreen_toggle_rect.collidepoint(event.pos):
                             self.settings_fullscreen_hover = True
                         elif hasattr(self, '_audio_toggle_rect') and self._audio_toggle_rect and self._audio_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "audio_toggle"
-                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
-                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.settings_hover_item = "theme_toggle"
+                        elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
-                        elif hasattr(self, '_back_button_rect') and self._back_button_rect.collidepoint(event.pos):
+                        elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.settings_hover_item = "back"
                     elif self.state == "diagnostics":
-                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect.collidepoint(event.pos)
+                        self._diag_close_hover = hasattr(self, '_diag_close_rect') and self._diag_close_rect and self._diag_close_rect.collidepoint(event.pos)
                     elif self.dragging and self.state == "playing":
                         new_y = event.pos[1] - self.drag_offset
                         self.player.y = max(0.0, min(SCREEN_HEIGHT - self.player.height, new_y))
@@ -3513,11 +3752,11 @@ class Game:
                         if event.key in (pygame.K_UP, pygame.K_w):
                             self.diff_index = (self.diff_index - 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_DOWN, pygame.K_s):
                             self.diff_index = (self.diff_index + 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self._start_game()
                     elif self.state == "settings":
@@ -3532,7 +3771,7 @@ class Game:
                                 self.toggle_audio()
                             else:
                                 self.show_debug_hud = not self.show_debug_hud
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                     elif self.state == "diagnostics":
                         if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self.state = "menu"
@@ -3553,8 +3792,14 @@ class Game:
             self.handle_input()
             if self.state == "playing":
                 self.player.move(self.player_move_dir, self.dt)
-                self.ai_move()
-                self.ai.move(self.ai_move_dir, self.dt)
+                
+                # Player 2 or AI movement / Movimiento Jugador 2 o IA
+                if self.game_mode == "2player":
+                    self.ai.move(self.player2_move_dir, self.dt)  # Reuse AI paddle for Player 2 / Reusar paleta IA para Jugador 2
+                else:
+                    self.ai_move()  # AI logic / Lógica IA
+                    self.ai.move(self.ai_move_dir, self.dt)
+                
                 self.ball.move(self.dt)
                 
                 # Multi-ball system / Sistema de multi-bola
@@ -3570,7 +3815,9 @@ class Game:
                 # Power-up system updates / Actualizaciones del sistema de power-ups
                 self.update_powerup_spawning(self.dt)
                 self.update_powerups(self.dt)
-                self.check_powerup_collision(self.player)
+                self.check_powerup_collision(self.player)  # Player 1
+                if self.game_mode == "2player":
+                    self.check_powerup_collision(self.ai)  # Player 2
                 self.update_powerup_effects(self.dt)
                 
                 self.update_particles(self.dt)
@@ -3644,8 +3891,8 @@ if __name__ == "__main__":
 # ============================================================================
 # END OF FILE / FIN DEL ARCHIVO
 # ============================================================================
-# Project: PongAI V2 - Incredible Neon Edition
-# Proyecto: PongAI V2 - Edición Neón Increíble
+# Project: PongAI V2 - 
+# Proyecto: PongAI V2 - 
 # 
 # Total Lines: ~3000+ (including documentation)
 # Líneas Totales: ~3000+ (incluyendo documentación)
@@ -3656,3 +3903,5 @@ if __name__ == "__main__":
 # License: Educational/Personal Use
 # Licencia: Uso Educacional/Personal
 # ============================================================================
+
+
