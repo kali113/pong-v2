@@ -51,8 +51,11 @@ except:
     IS_WEB = False
 
 # Settings file location / Ubicación del archivo de configuración
-# Stored in user's home directory / Almacenado en el directorio personal del usuario
-SETTINGS_FILE = Path.home() / '.pong_ai_settings.json'
+# Stored in user's home directory (desktop only) / Almacenado en el directorio personal (solo escritorio)
+try:
+    SETTINGS_FILE = Path.home() / '.pong_ai_settings.json' if not IS_WEB else None
+except:
+    SETTINGS_FILE = None  # Web mode or filesystem unavailable / Modo web o sistema de archivos no disponible
 # ============================================================================
 # TRANSLATION SYSTEM / SISTEMA DE TRADUCCIÓN
 # All UI text in English and Spanish / Todo el texto de UI en Inglés y Español
@@ -99,15 +102,15 @@ TRANSLATIONS = {
 
 def load_settings():
     """
-    Load user settings from JSON file.
-    Cargar configuración del usuario desde archivo JSON.
+    Load user settings from JSON file (desktop) or return defaults (web).
+    Cargar configuración del usuario desde archivo JSON (escritorio) o retornar valores por defecto (web).
     
     Returns / Retorna:
         dict: Settings dictionary with fullscreen, difficulty, audio, language
               Diccionario de configuración con pantalla completa, dificultad, audio, idioma
     """
     try:
-        if SETTINGS_FILE.exists():
+        if SETTINGS_FILE is not None and SETTINGS_FILE.exists():
             with open(SETTINGS_FILE, 'r') as f:
                 data = json.load(f)
                 if isinstance(data, dict):
@@ -115,11 +118,11 @@ def load_settings():
                     data.setdefault('audio_enabled', True)
                     data.setdefault('language', 'en')
                     return data
-    except (json.JSONDecodeError, IOError, ValueError):
-        pass  # Invalid or corrupted settings file / Archivo inválido o corrupto
+    except (json.JSONDecodeError, IOError, ValueError, AttributeError):
+        pass  # Invalid or corrupted settings file, or web mode / Archivo inválido o corrupto, o modo web
     
-    # Return default settings if file missing/corrupted
-    # Retornar configuración por defecto si archivo falta/está corrupto
+    # Return default settings if file missing/corrupted or in web mode
+    # Retornar configuración por defecto si archivo falta/está corrupto o en modo web
     return {
         'fullscreen': False,  # Windowed mode / Modo ventana
         'debug_hud': False,   # Performance overlay off / Overlay de rendimiento desactivado
@@ -131,8 +134,8 @@ def load_settings():
 
 def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en', theme='dark'):
     """
-    Save user settings to JSON file.
-    Guardar configuración del usuario en archivo JSON.
+    Save user settings to JSON file (desktop only, no-op in web).
+    Guardar configuración del usuario en archivo JSON (solo escritorio, no-op en web).
     
     Args / Argumentos:
         fullscreen (bool): Fullscreen mode enabled / Modo pantalla completa activado
@@ -142,6 +145,8 @@ def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en
         audio_enabled (bool): Sound effects enabled / Efectos de sonido activados
         language (str): UI language code ('en' or 'es') / Código de idioma ('en' o 'es')
     """
+    if SETTINGS_FILE is None:
+        return  # Web mode - settings persistence not available / Modo web - persistencia no disponible
     try:
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({
