@@ -128,9 +128,11 @@ class AsyncGameWrapper:
                     self.game.toggle_audio()
                 elif hasattr(self.game, '_language_toggle_rect') and self.game._language_toggle_rect.collidepoint(event.pos):
                     self.game.toggle_language()
+                elif hasattr(self.game, '_theme_toggle_rect') and self.game._theme_toggle_rect.collidepoint(event.pos):
+                    self.game.toggle_theme()
                 elif hasattr(self.game, '_debug_toggle_rect') and self.game._debug_toggle_rect.collidepoint(event.pos):
                     self.game.show_debug_hud = not self.game.show_debug_hud
-                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language)
+                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
                 elif hasattr(self.game, '_back_button_rect') and self.game._back_button_rect.collidepoint(event.pos):
                     self.game.state = "menu"
                     self.game.menu_phase = 0.0
@@ -176,7 +178,7 @@ class AsyncGameWrapper:
                                 break
                     if target_idx is not None and target_idx != self.game.diff_index:
                         self.game.diff_index = target_idx
-                        save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language)
+                        save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
                     if target_idx is not None:
                         self.game.menu_hover_index = target_idx
             if self.game.state == "playing" and self.game._player_drag_rect().collidepoint(event.pos):
@@ -207,6 +209,8 @@ class AsyncGameWrapper:
                     self.game.settings_hover_item = "audio_toggle"
                 elif hasattr(self.game, '_language_toggle_rect') and self.game._language_toggle_rect.collidepoint(event.pos):
                     self.game.settings_hover_item = "language_toggle"
+                elif hasattr(self.game, '_theme_toggle_rect') and self.game._theme_toggle_rect.collidepoint(event.pos):
+                    self.game.settings_hover_item = "theme_toggle"
                 elif hasattr(self.game, '_debug_toggle_rect') and self.game._debug_toggle_rect.collidepoint(event.pos):
                     self.game.settings_hover_item = "debug_toggle"
                 elif hasattr(self.game, '_back_button_rect') and self.game._back_button_rect.collidepoint(event.pos):
@@ -235,11 +239,11 @@ class AsyncGameWrapper:
                 if event.key in (pygame.K_UP, pygame.K_w):
                     self.game.diff_index = (self.game.diff_index - 1) % len(self.game.difficulties)
                     self.game.menu_hover_index = self.game.diff_index
-                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language)
+                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     self.game.diff_index = (self.game.diff_index + 1) % len(self.game.difficulties)
                     self.game.menu_hover_index = self.game.diff_index
-                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language)
+                    save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                     self.game._start_game()
             elif self.game.state == "settings":
@@ -254,7 +258,7 @@ class AsyncGameWrapper:
                         self.game.toggle_audio()
                     else:
                         self.game.show_debug_hud = not self.game.show_debug_hud
-                        save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language)
+                        save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
             elif self.game.state == "diagnostics":
                 if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
                     self.game.state = "menu"

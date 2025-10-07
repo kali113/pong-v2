@@ -1528,18 +1528,24 @@ class Game:
         Alternar entre modo oscuro y claro.
         """
         self.theme = 'light' if self.theme == 'dark' else 'dark'
-        # Recreate base background with new theme
+        print(f"[Theme] Switched to {self.theme} mode")  # Debug
+        
+        # RECREATE base background surface with new theme colors
+        self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT
             if self.theme == 'light':
-                r = int(195 - 20 * t)  # Light beige #C3B59F
-                g = int(181 - 20 * t)
-                b = int(159 - 20 * t)
+                # Light mode: Pastel beige #C3B59F (195,181,159)
+                r = int(195 - 20 * t)  # 195 → 175
+                g = int(181 - 20 * t)  # 181 → 161
+                b = int(159 - 20 * t)  # 159 → 139
             else:
-                r = int(30 + 15 * t)  # Dark gray #1E1E24
-                g = int(30 + 15 * t)
-                b = int(36 + 20 * t)
+                # Dark mode: Dark gray #1E1E24 (30,30,36)
+                r = int(30 + 15 * t)  # 30 → 45
+                g = int(30 + 15 * t)  # 30 → 45
+                b = int(36 + 20 * t)  # 36 → 56
             pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
+        
         save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def _play_sound(self, sound):
