@@ -50,6 +50,11 @@ try:
 except:
     IS_WEB = False
 
+# Ensure virtual home directory in web builds so libraries avoid unsupported paths
+if IS_WEB:
+    os.environ.setdefault("HOME", "/tmp")
+    os.environ.setdefault("USERPROFILE", "/tmp")
+
 # Settings file location / Ubicación del archivo de configuración
 # Stored in user's home directory (desktop only) / Almacenado en el directorio personal (solo escritorio)
 try:
