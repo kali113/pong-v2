@@ -2210,10 +2210,10 @@ class Game:
         self.button_target_scales[btn_id] = 1.08 if hovered else 1.0
         return self.button_scales.get(btn_id, 1.0)
     
-    def _draw_modern_button(self, text, x, y, hovered=False, scale=1.0, glow_color=(100, 200, 255)):
+    def _draw_modern_button(self, text, x, y, hovered=False, scale=1.0, glow_color=(100, 200, 255), font_size=None):
         """
-        Draw modern gradient button with glow effect.
-        Dibujar botón moderno con gradiente y efecto de brillo.
+        Draw modern gradient button with glow effect and crisp text.
+        Dibujar botón moderno con gradiente, efecto de brillo y texto nítido.
         
         Args / Argumentos:
             text (str): Button text / Texto del botón
@@ -2221,57 +2221,89 @@ class Game:
             hovered (bool): Hover state / Estado de hover
             scale (float): Scale multiplier for animations / Multiplicador de escala para animaciones
             glow_color (tuple): RGB glow color / Color RGB del brillo
+            font_size (int): Optional font size override / Tamaño de fuente opcional
         
         Returns / Retorna:
             pygame.Rect: Button hitbox / Hitbox del botón
         """
-        # Render text / Renderizar texto
-        text_surf = self.font.render(text, True, (255, 255, 255))
+        # Use scaled font size for crisp rendering / Usar tamaño de fuente escalado para renderizado nítido
+        if font_size is None:
+            font_size = int(28 * scale)
+        
+        font = pygame.font.Font(None, font_size)
+        text_surf = font.render(text, True, (255, 255, 255))
         text_w, text_h = text_surf.get_size()
         
         # Calculate button dimensions with padding / Calcular dimensiones con padding
-        btn_w = int((text_w + 60) * scale)
-        btn_h = int((text_h + 30) * scale)
+        padding_x = int(50 * scale)
+        padding_y = int(20 * scale)
+        btn_w = text_w + padding_x * 2
+        btn_h = text_h + padding_y * 2
         btn_x = int(x - btn_w / 2)
         btn_y = int(y - btn_h / 2)
         
         # Create button rect / Crear rectángulo del botón
         btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
         
+        # Draw shadow first / Dibujar sombra primero
+        shadow_surf = pygame.Surface((btn_w + 6, btn_h + 6), pygame.SRCALPHA)
+        pygame.draw.rect(shadow_surf, (0, 0, 0, 60), shadow_surf.get_rect(), border_radius=14)
+        self.screen.blit(shadow_surf, (btn_x + 3, btn_y + 4))
+        
         # Draw glow effect when hovered / Dibujar efecto de brillo al hacer hover
         if hovered:
-            glow_surf = pygame.Surface((btn_w + 20, btn_h + 20), pygame.SRCALPHA)
-            for i in range(5):
-                alpha = int(40 - i * 7)
-                expand = i * 4
-                glow_rect = pygame.Rect(expand, expand, btn_w + 20 - expand * 2, btn_h + 20 - expand * 2)
-                pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_rect, border_radius=15)
-            self.screen.blit(glow_surf, (btn_x - 10, btn_y - 10))
+            glow_surf = pygame.Surface((btn_w + 30, btn_h + 30), pygame.SRCALPHA)
+            for i in range(6):
+                alpha = int(50 - i * 8)
+                expand = i * 5
+                glow_rect = pygame.Rect(expand, expand, btn_w + 30 - expand * 2, btn_h + 30 - expand * 2)
+                pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_rect, border_radius=16)
+            self.screen.blit(glow_surf, (btn_x - 15, btn_y - 15))
         
         # Draw gradient background / Dibujar fondo con gradiente
         btn_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
         for i in range(btn_h):
             t = i / btn_h
             if hovered:
-                r = int(glow_color[0] * (0.5 + 0.3 * t))
-                g = int(glow_color[1] * (0.5 + 0.3 * t))
-                b = int(glow_color[2] * (0.7 + 0.3 * t))
+                # Brighter gradient when hovered / Gradiente más brillante al hacer hover
+                r = int(glow_color[0] * (0.35 + 0.25 * t))
+                g = int(glow_color[1] * (0.35 + 0.25 * t))
+                b = int(glow_color[2] * (0.65 + 0.25 * t))
+                alpha = 240
             else:
-                r = int(40 + 30 * t)
-                g = int(50 + 30 * t)
-                b = int(80 + 40 * t)
-            pygame.draw.line(btn_surf, (r, g, b, 255), (0, i), (btn_w, i))
+                # Darker subtle gradient / Gradiente sutil más oscuro
+                r = int(45 + 25 * t)
+                g = int(55 + 25 * t)
+                b = int(85 + 35 * t)
+                alpha = 230
+            pygame.draw.line(btn_surf, (r, g, b, alpha), (0, i), (btn_w, i))
         
-        # Draw border / Dibujar borde
-        border_color = glow_color if hovered else (80, 90, 120)
-        pygame.draw.rect(btn_surf, border_color, btn_surf.get_rect(), width=2, border_radius=12)
+        # Draw inner highlight / Dibujar resaltado interior
+        highlight = pygame.Surface((btn_w, btn_h // 3), pygame.SRCALPHA)
+        for i in range(btn_h // 3):
+            alpha = int(30 * (1 - i / (btn_h // 3)))
+            pygame.draw.line(highlight, (255, 255, 255, alpha), (0, i), (btn_w, i))
+        btn_surf.blit(highlight, (0, 0))
+        
+        # Draw border with depth / Dibujar borde con profundidad
+        if hovered:
+            border_color = (*glow_color, 255)
+            border_width = 3
+        else:
+            border_color = (90, 100, 140, 200)
+            border_width = 2
+        
+        pygame.draw.rect(btn_surf, border_color, btn_surf.get_rect(), width=border_width, border_radius=13)
         
         self.screen.blit(btn_surf, (btn_x, btn_y))
         
-        # Draw text centered / Dibujar texto centrado
-        scaled_text = pygame.transform.scale(text_surf, (int(text_w * scale), int(text_h * scale)))
-        text_rect = scaled_text.get_rect(center=(x, y))
-        self.screen.blit(scaled_text, text_rect)
+        # Draw text centered with slight shadow / Dibujar texto centrado con ligera sombra
+        text_shadow = font.render(text, True, (0, 0, 0, 180))
+        shadow_rect = text_shadow.get_rect(center=(x + 1, y + 2))
+        self.screen.blit(text_shadow, shadow_rect)
+        
+        text_rect = text_surf.get_rect(center=(x, y))
+        self.screen.blit(text_surf, text_rect)
         
         return btn_rect
     
@@ -2393,8 +2425,12 @@ class Game:
         hint_rect = hint.get_rect(center=(cx, base_y + len(self.difficulties) * spacing))
         self.screen.blit(hint, hint_rect)
         
-        # 2-Player button with modern style / Botón de 2 jugadores con estilo moderno
-        twoplay_y = base_y + len(self.difficulties) * spacing + 50
+        # Modern button section with proper spacing / Sección de botones modernos con espaciado adecuado
+        button_start_y = base_y + len(self.difficulties) * spacing + 60
+        button_spacing = 70
+        
+        # 2-Player button / Botón de 2 jugadores
+        twoplay_y = button_start_y
         twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
         btn_scale = self._get_button_scale('2player', twoplay_hovered)
         if '2player' not in self.button_scales:
@@ -2403,75 +2439,35 @@ class Game:
             self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (255, 200, 50)
         )
         
-        mp_y = base_y + len(self.difficulties) * spacing + 110
-        mp_text = self.font.render(self.t('multiplayer'), True, (200, 220, 255))
-        mp_rect = mp_text.get_rect(center=(cx, mp_y))
-        icon_size = 28
-        icon_x = mp_rect.left - 42
-        icon_y = mp_y
-        icon_surf = pygame.Surface((icon_size, icon_size), pygame.SRCALPHA)
-        person_color = (180, 200, 255)
-        pygame.draw.circle(icon_surf, person_color, (7, 7), 4)
-        pygame.draw.circle(icon_surf, person_color, (21, 7), 4)
-        pygame.draw.rect(icon_surf, person_color, (4, 12, 6, 10), border_radius=3)
-        pygame.draw.rect(icon_surf, person_color, (18, 12, 6, 10), border_radius=3)
-        pygame.draw.line(icon_surf, person_color, (4, 14), (1, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (10, 14), (13, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (18, 14), (15, 18), 2)
-        pygame.draw.line(icon_surf, person_color, (24, 14), (27, 18), 2)
-        mp_hit = pygame.Rect(mp_rect.left - 40, mp_rect.top - 10, mp_rect.width + 80, mp_rect.height + 20)
-        if hasattr(self, '_mp_button_hover') and self._mp_button_hover:
-            glow = pygame.Surface((mp_hit.width, mp_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 200, 255, 100), glow.get_rect(), border_radius=16)
-            self.screen.blit(glow, mp_hit)
-        self.screen.blit(icon_surf, (icon_x, icon_y - icon_size // 2))
-        self.screen.blit(mp_text, mp_rect)
-        self._mp_button_rect = mp_hit
-        settings_y = mp_y + 50
-        settings_text = self.font.render(self.t('settings'), True, (200, 210, 230))
-        settings_rect = settings_text.get_rect(center=(cx, settings_y))
-        gear_size = 24
-        gear_x = settings_rect.left - 40
-        gear_y = settings_y
-        gear_surf = pygame.Surface((gear_size, gear_size), pygame.SRCALPHA)
-        gear_center = gear_size // 2
-        gear_radius = 10
-        gear_color = (180, 200, 255)
-        gear_points = []
-        for i in range(6):
-            angle = math.pi / 3 * i
-            px = gear_center + int(gear_radius * math.cos(angle))
-            py = gear_center + int(gear_radius * math.sin(angle))
-            gear_points.append((px, py))
-        pygame.draw.polygon(gear_surf, gear_color, gear_points)
-        tooth_color = (200, 220, 255)
-        for i in range(6):
-            angle = math.pi / 3 * i + math.pi / 6
-            px1 = gear_center + int((gear_radius - 2) * math.cos(angle))
-            py1 = gear_center + int((gear_radius - 2) * math.sin(angle))
-            px2 = gear_center + int((gear_radius + 4) * math.cos(angle))
-            py2 = gear_center + int((gear_radius + 4) * math.sin(angle))
-            pygame.draw.line(gear_surf, tooth_color, (px1, py1), (px2, py2), 3)
-        pygame.draw.circle(gear_surf, (30, 20, 50), (gear_center, gear_center), 4)
-        settings_hit = pygame.Rect(gear_x - 10, settings_y - gear_size // 2 - 10, 
-                                   settings_rect.width + gear_size + 60, settings_rect.height + 20)
-        if hasattr(self, '_settings_button_hover') and self._settings_button_hover:
-            glow = pygame.Surface((settings_hit.width, settings_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 200, 255, 100), glow.get_rect(), border_radius=16)
-            self.screen.blit(glow, settings_hit)
-        self.screen.blit(gear_surf, (gear_x, gear_y - gear_size // 2))
-        self.screen.blit(settings_text, settings_rect)
-        self._settings_button_rect = settings_hit
-        test_y = settings_y + 50
-        test_text = self.small_font.render(self.t('diagnostics'), True, (180, 200, 220))
-        test_rect = test_text.get_rect(center=(cx, test_y))
-        test_hit = pygame.Rect(test_rect.left - 30, test_rect.top - 8, test_rect.width + 60, test_rect.height + 16)
-        if hasattr(self, '_test_button_hover') and self._test_button_hover:
-            glow = pygame.Surface((test_hit.width, test_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (100, 180, 255, 80), glow.get_rect(), border_radius=12)
-            self.screen.blit(glow, test_hit)
-        self.screen.blit(test_text, test_rect)
-        self._test_button_rect = test_hit
+        # Multiplayer button / Botón multijugador
+        mp_y = button_start_y + button_spacing
+        mp_hovered = hasattr(self, '_mp_button_hover') and self._mp_button_hover
+        mp_scale = self._get_button_scale('multiplayer', mp_hovered)
+        if 'multiplayer' not in self.button_scales:
+            self.button_scales['multiplayer'] = 1.0
+        self._mp_button_rect = self._draw_modern_button(
+            "🌐 " + self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (100, 200, 255)
+        )
+        
+        # Settings button / Botón de configuración
+        settings_y = button_start_y + button_spacing * 2
+        settings_hovered = hasattr(self, '_settings_button_hover') and self._settings_button_hover
+        settings_scale = self._get_button_scale('settings', settings_hovered)
+        if 'settings' not in self.button_scales:
+            self.button_scales['settings'] = 1.0
+        self._settings_button_rect = self._draw_modern_button(
+            "⚙️ " + self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (150, 180, 255)
+        )
+        
+        # Diagnostics button (smaller, subtle) / Botón diagnósticos (más pequeño, sutil)
+        test_y = settings_y + 60
+        test_hovered = hasattr(self, '_test_button_hover') and self._test_button_hover
+        test_scale = self._get_button_scale('diagnostics', test_hovered) * 0.85
+        if 'diagnostics' not in self.button_scales:
+            self.button_scales['diagnostics'] = 0.85
+        self._test_button_rect = self._draw_modern_button(
+            self.t('diagnostics'), cx, test_y, test_hovered, test_scale, (120, 140, 180), font_size=22
+        )
         self.menu_phase = min(self.menu_phase + self.dt, 1.0)
         fade = max(0.0, 1.0 - self.menu_phase)
         if fade > 0:
@@ -2520,28 +2516,15 @@ class Game:
         toggle_y = 480
         self.screen.blit(self.font.render(self.t('hud'), True, WHITE), self.font.render(self.t('hud'), True, WHITE).get_rect(center=(cx - 80, toggle_y)))
         self._debug_toggle_rect = self._draw_toggle(cx + 120, toggle_y, self.show_debug_hud, self.settings_hover_item == "debug_toggle")
+        # Modern back button / Botón de volver moderno
         back_y = SCREEN_HEIGHT - 120
-        back_text = self.font.render(self.t('back'), True, (220, 230, 255))
-        back_rect = back_text.get_rect(center=(cx, back_y))
-        arrow_size = 20
-        arrow_x = back_rect.left - 35
-        arrow_y = back_y
-        arrow_color = (180, 220, 255)
-        arrow_points = [
-            (arrow_x, arrow_y),
-            (arrow_x + 12, arrow_y - 10),
-            (arrow_x + 12, arrow_y + 10)
-        ]
-        pygame.draw.polygon(self.screen, arrow_color, arrow_points)
-        pygame.draw.line(self.screen, arrow_color, (arrow_x + 8, arrow_y), (arrow_x + arrow_size + 5, arrow_y), 3)
-        back_hit = pygame.Rect(arrow_x - 10, back_rect.top - 12, back_rect.width + 70, back_rect.height + 24)
         back_hovered = self.settings_hover_item == "back"
-        if back_hovered:
-            glow = pygame.Surface((back_hit.width, back_hit.height), pygame.SRCALPHA)
-            pygame.draw.rect(glow, (80, 160, 255, 100), glow.get_rect(), border_radius=18)
-            self.screen.blit(glow, back_hit)
-        self.screen.blit(back_text, back_rect)
-        self._back_button_rect = back_hit
+        back_scale = self._get_button_scale('settings_back', back_hovered)
+        if 'settings_back' not in self.button_scales:
+            self.button_scales['settings_back'] = 1.0
+        self._back_button_rect = self._draw_modern_button(
+            "← " + self.t('back'), cx, back_y, back_hovered, back_scale, (120, 160, 255)
+        )
         
         # Draw fade-in overlay BEFORE display.flip() / Dibujar overlay de fade ANTES de display.flip()
         # Note: This doesn't block input - pygame processes events before rendering
