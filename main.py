@@ -63,7 +63,10 @@ TRANSLATIONS = {
         'title': 'Pong AI', 'subtitle': 'SPACE / ENTER to start', 'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard',
         'difficulty_hint': 'Click or use UP/DOWN / W-S to change difficulty', 'multiplayer': 'Multiplayer',
         'settings': 'Settings', 'diagnostics': 'Run Diagnostics', 'fullscreen': 'Fullscreen:', 'audio': 'Audio Effects:',
-        'hud': 'Performance HUD:', 'language': 'Language:', 'theme': 'Theme:', 'dark_mode': 'Dark', 'light_mode': 'Light', 'back': 'Back', 'host_game': 'Host Game',
+        'hud': 'Performance HUD:', 'language': 'Language:', 'theme': 'Theme:', 'dark_mode': 'Dark', 'light_mode': 'Light', 
+        'pygame_version': 'Pygame Version', 'python_version': 'Python Version', 'screen_resolution': 'Screen', 
+        'network_status': 'Network', 'available': 'Available', 'unavailable': 'Unavailable',
+        'back': 'Back', 'host_game': 'Host Game',
         'join_private': 'Join Private Game:', 'join': 'Join', 'or': 'OR', 'find_public': 'Find Public Match',
         'waiting': 'Waiting for player...', 'host_code': 'Host Code:', 'cancel': 'Cancel', 'player': 'Player', 'ai': 'AI',
         'searching': 'Searching for match', 'code_hint': 'CODE', 'close': 'Close', 'game_over': 'Game Over',
@@ -76,7 +79,10 @@ TRANSLATIONS = {
         'title': 'Pong IA', 'subtitle': 'ESPACIO / ENTER para iniciar', 'easy': 'Fácil', 'medium': 'Medio', 'hard': 'Difícil',
         'difficulty_hint': 'Clic o usa ARRIBA/ABAJO / W-S para cambiar dificultad', 'multiplayer': 'Multijugador',
         'settings': 'Configuración', 'diagnostics': 'Ejecutar Diagnósticos', 'fullscreen': 'Pantalla completa:', 'audio': 'Efectos de audio:',
-        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'theme': 'Tema:', 'dark_mode': 'Oscuro', 'light_mode': 'Claro', 'back': 'Volver', 'host_game': 'Crear Partida',
+        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'theme': 'Tema:', 'dark_mode': 'Oscuro', 'light_mode': 'Claro',
+        'pygame_version': 'Versión Pygame', 'python_version': 'Versión Python', 'screen_resolution': 'Pantalla',
+        'network_status': 'Red', 'available': 'Disponible', 'unavailable': 'No disponible',
+        'back': 'Volver', 'host_game': 'Crear Partida',
         'join_private': 'Unirse a Partida Privada:', 'join': 'Unirse', 'or': 'O', 'find_public': 'Buscar Partida Pública',
         'waiting': 'Esperando jugador...', 'host_code': 'Código:', 'cancel': 'Cancelar', 'player': 'Jugador', 'ai': 'IA',
         'searching': 'Buscando partida', 'code_hint': 'CÓDIGO', 'close': 'Cerrar', 'game_over': 'Fin del Juego',
@@ -1535,10 +1541,10 @@ class Game:
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT
             if self.theme == 'light':
-                # Light mode: Pastel beige #C3B59F (195,181,159)
-                r = int(195 - 20 * t)  # 195 → 175
-                g = int(181 - 20 * t)  # 181 → 161
-                b = int(159 - 20 * t)  # 159 → 139
+                # Light mode: Darker gray-brown #8B7E74 (139,126,116) for better contrast
+                r = int(139 - 25 * t)  # 139 → 114
+                g = int(126 - 22 * t)  # 126 → 104
+                b = int(116 - 20 * t)  # 116 → 96
             else:
                 # Dark mode: Dark gray #1E1E24 (30,30,36)
                 r = int(30 + 15 * t)  # 30 → 45
@@ -2508,34 +2514,34 @@ class Game:
         button_spacing = 52  # Tighter spacing - everything must fit!
         
         # NO EMOJIS - they show as squares! Use text only + beautiful pastel colors
-        # 2-Player button - pastel orange/yellow #EE964B (238, 150, 75)
+        # 2-Player button - pastel rose #D6A2AD (214, 162, 173)
         twoplay_y = button_start_y
         twoplay_hovered = hasattr(self, '_2player_button_hover') and self._2player_button_hover
         btn_scale = self._get_button_scale('2player', twoplay_hovered)
         if '2player' not in self.button_scales:
             self.button_scales['2player'] = 1.0
         self._2player_button_rect = self._draw_modern_button(
-            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (238, 150, 75)
+            self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (214, 162, 173)
         )
         
-        # Multiplayer button - pastel beige #C3B59F (195, 181, 159)
+        # Multiplayer button - pastel teal #668F80 (102, 143, 128)
         mp_y = button_start_y + button_spacing
         mp_hovered = hasattr(self, '_mp_button_hover') and self._mp_button_hover
         mp_scale = self._get_button_scale('multiplayer', mp_hovered)
         if 'multiplayer' not in self.button_scales:
             self.button_scales['multiplayer'] = 1.0
         self._mp_button_rect = self._draw_modern_button(
-            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (195, 181, 159)
+            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (102, 143, 128)
         )
         
-        # Settings button - pastel pink #EFA9AE (239, 169, 174)
+        # Settings button - pastel blue #6699CC (102, 153, 204)
         settings_y = button_start_y + button_spacing * 2
         settings_hovered = hasattr(self, '_settings_button_hover') and self._settings_button_hover
         settings_scale = self._get_button_scale('settings', settings_hovered)
         if 'settings' not in self.button_scales:
             self.button_scales['settings'] = 1.0
         self._settings_button_rect = self._draw_modern_button(
-            self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (239, 169, 174)
+            self.t('settings'), cx, settings_y, settings_hovered, settings_scale, (102, 153, 204)
         )
         
         # Diagnostics button (smaller) - FIX OVERLAP: move higher!
@@ -2612,14 +2618,14 @@ class Game:
         toggle_y = 560  # Moved from 480 to 560
         self.screen.blit(self.font.render(self.t('hud'), True, WHITE), self.font.render(self.t('hud'), True, WHITE).get_rect(center=(cx - 80, toggle_y)))
         self._debug_toggle_rect = self._draw_toggle(cx + 120, toggle_y, self.show_debug_hud, self.settings_hover_item == "debug_toggle")
-        # Back button - NO EMOJI! Pastel pink #EFA9AE, at BOTTOM
+        # Back button - NO EMOJI! Pastel rose #D6A2AD, at BOTTOM
         back_y = SCREEN_HEIGHT - 60  # At bottom with proper spacing
         back_hovered = self.settings_hover_item == "back"
         back_scale = self._get_button_scale('settings_back', back_hovered)
         if 'settings_back' not in self.button_scales:
             self.button_scales['settings_back'] = 1.0
         self._back_button_rect = self._draw_modern_button(
-            "< " + self.t('back'), cx, back_y, back_hovered, back_scale, (239, 169, 174)
+            "< " + self.t('back'), cx, back_y, back_hovered, back_scale, (214, 162, 173)
         )
         
         # Draw fade-in overlay BEFORE display.flip() / Dibujar overlay de fade ANTES de display.flip()
@@ -3021,42 +3027,12 @@ class Game:
         - Vignette darkening / Oscurecimiento de viñeta
         - Scanlines (CRT effect) / Líneas de escaneo (efecto CRT)
         """
-        # Draw base gradient / Dibujar gradiente base
+        # Draw CLEAN base gradient ONLY - NO OVERLAYS to show theme colors!
+        # Dibujar gradiente base LIMPIO - SIN superposiciones para mostrar colores del tema!
         self.screen.blit(self.base_background, (0, 0))
         
-        # SUBTLE animated color tint - reduced alpha to show base background
-        cycle = (math.sin(self.elapsed * 0.6) + 1) / 2
-        self._tint_surface.fill((int(30 + 80 * cycle), int(10 + 60 * (1 - cycle)), 120, 20))  # Reduced alpha 60→20
-        self.screen.blit(self._tint_surface, (0, 0), special_flags=pygame.BLEND_ADD)
-        spacing = 40
-        self.bg_offset = (self.bg_offset + 80 * self.dt) % spacing
-        chroma_layers = [((220, 80, 255), 0), ((80, 220, 255), 12), ((255, 140, 90), 24)]
-        for color, offset in chroma_layers:
-            for x in range(-spacing, SCREEN_WIDTH + spacing, spacing):
-                xx = x + int(self.bg_offset) + offset
-                pygame.draw.line(self.screen, color, (xx, 0), (xx, SCREEN_HEIGHT), 1)
-            for y in range(0, SCREEN_HEIGHT, spacing):
-                intensity = int(35 + 55 * (1 - y / SCREEN_HEIGHT))
-                yy = int((y + self.bg_offset + offset) % SCREEN_HEIGHT)
-                line_color = (min(255, color[0] // 2 + intensity),
-                              min(255, color[1] // 2 + intensity),
-                              min(255, color[2] // 2 + intensity))
-                pygame.draw.line(self.screen, line_color, (0, yy), (SCREEN_WIDTH, yy), 1)
-        sweep_height = 140
-        if self._cached_background is None:
-            self._sweep_surface.fill((0, 0, 0, 0))
-            for y in range(sweep_height):
-                falloff = abs(y - sweep_height / 2) / (sweep_height / 2)
-                alpha = int(90 * max(0, 1 - falloff))
-                pygame.draw.line(self._sweep_surface, (200, 100, 255, alpha), (0, y), (SCREEN_WIDTH, y))
-        sweep_y = int((math.sin(self.elapsed * 1.5) * 0.5 + 0.5) * (SCREEN_HEIGHT + sweep_height)) - sweep_height
-        self.screen.blit(self._sweep_surface, (0, sweep_y), special_flags=pygame.BLEND_ADD)
-        # Reduced glow alpha to make background visible (70→40 base)
-        glow_alpha = int(40 + 30 * math.sin(self.elapsed * 2))
-        self.center_glow.set_alpha(glow_alpha)
-        self.screen.blit(self.center_glow, (0, 0), special_flags=pygame.BLEND_ADD)
-        self.screen.blit(self.vignette, (0, 0))
-        self.screen.blit(self.scanlines, (0, 0), special_flags=pygame.BLEND_MULT)
+        # ALL ANIMATED OVERLAYS DISABLED - background is now clearly visible!
+        # TODAS las superposiciones animadas DESHABILITADAS - ¡el fondo ahora es claramente visible!
     def _shake(self, duration, magnitude):
         """
         Trigger screen shake effect.
