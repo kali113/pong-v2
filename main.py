@@ -1775,15 +1775,15 @@ class Game:
         Crear recursos visuales (fondo, viñeta, líneas de escaneo, brillo).
         """
         # Create gradient background based on theme / Crear fondo con gradiente según tema
-        # Dark mode: #1E1E24 (30,30,36), Light mode: #C3B59F (195,181,159)
+        # Dark mode: #1E1E24 (30,30,36), Light mode: #8B7E74 (139,126,116)
         self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT  # Vertical position ratio / Ratio de posición vertical
             if self.theme == 'light':
-                # Light mode: Pastel beige #C3B59F
-                r = int(195 - 20 * t)  # 195 → 175 warm beige
-                g = int(181 - 20 * t)  # 181 → 161
-                b = int(159 - 20 * t)  # 159 → 139
+                # Light mode: Darker gray-brown #8B7E74 for better contrast
+                r = int(139 - 25 * t)  # 139 → 114
+                g = int(126 - 22 * t)  # 126 → 104
+                b = int(116 - 20 * t)  # 116 → 96
             else:
                 # Dark mode: Dark gray #1E1E24
                 r = int(30 + 15 * t)  # 30 → 45 dark gray
