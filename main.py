@@ -63,7 +63,7 @@ TRANSLATIONS = {
         'title': 'Pong AI', 'subtitle': 'SPACE / ENTER to start', 'easy': 'Easy', 'medium': 'Medium', 'hard': 'Hard',
         'difficulty_hint': 'Click or use UP/DOWN / W-S to change difficulty', 'multiplayer': 'Multiplayer',
         'settings': 'Settings', 'diagnostics': 'Run Diagnostics', 'fullscreen': 'Fullscreen:', 'audio': 'Audio Effects:',
-        'hud': 'Performance HUD:', 'language': 'Language:', 'back': 'Back', 'host_game': 'Host Game',
+        'hud': 'Performance HUD:', 'language': 'Language:', 'theme': 'Theme:', 'dark_mode': 'Dark', 'light_mode': 'Light', 'back': 'Back', 'host_game': 'Host Game',
         'join_private': 'Join Private Game:', 'join': 'Join', 'or': 'OR', 'find_public': 'Find Public Match',
         'waiting': 'Waiting for player...', 'host_code': 'Host Code:', 'cancel': 'Cancel', 'player': 'Player', 'ai': 'AI',
         'searching': 'Searching for match', 'code_hint': 'CODE', 'close': 'Close', 'game_over': 'Game Over',
@@ -76,7 +76,7 @@ TRANSLATIONS = {
         'title': 'Pong IA', 'subtitle': 'ESPACIO / ENTER para iniciar', 'easy': 'Fácil', 'medium': 'Medio', 'hard': 'Difícil',
         'difficulty_hint': 'Clic o usa ARRIBA/ABAJO / W-S para cambiar dificultad', 'multiplayer': 'Multijugador',
         'settings': 'Configuración', 'diagnostics': 'Ejecutar Diagnósticos', 'fullscreen': 'Pantalla completa:', 'audio': 'Efectos de audio:',
-        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'back': 'Volver', 'host_game': 'Crear Partida',
+        'hud': 'HUD de rendimiento:', 'language': 'Idioma:', 'theme': 'Tema:', 'dark_mode': 'Oscuro', 'light_mode': 'Claro', 'back': 'Volver', 'host_game': 'Crear Partida',
         'join_private': 'Unirse a Partida Privada:', 'join': 'Unirse', 'or': 'O', 'find_public': 'Buscar Partida Pública',
         'waiting': 'Esperando jugador...', 'host_code': 'Código:', 'cancel': 'Cancelar', 'player': 'Jugador', 'ai': 'IA',
         'searching': 'Buscando partida', 'code_hint': 'CÓDIGO', 'close': 'Cerrar', 'game_over': 'Fin del Juego',
@@ -119,10 +119,11 @@ def load_settings():
         'debug_hud': False,   # Performance overlay off / Overlay de rendimiento desactivado
         'difficulty': 1,      # Medium AI / IA Media
         'audio_enabled': True,  # Sound effects on / Efectos de sonido activados
-        'language': 'en'      # English by default / Inglés por defecto
+        'language': 'en',     # English by default / Inglés por defecto
+        'theme': 'dark'       # Dark mode by default / Modo oscuro por defecto
     }
 
-def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en'):
+def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en', theme='dark'):
     """
     Save user settings to JSON file.
     Guardar configuración del usuario en archivo JSON.
@@ -142,8 +143,9 @@ def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en
                 'debug_hud': debug_hud,
                 'difficulty': difficulty,
                 'audio_enabled': audio_enabled,
-                'language': language
-            }, f)
+                'language': language,
+                'theme': theme
+            }, f, indent=2)
     except IOError:
         pass  # Unable to save settings / No se puede guardar configuración
 
@@ -1317,6 +1319,7 @@ class Game:
         self.fullscreen = saved.get('fullscreen', False)
         self.audio_enabled = saved.get('audio_enabled', True)
         self.language = saved.get('language', 'en')
+        self.theme = saved.get('theme', 'dark')  # Theme: 'dark' or 'light' / Tema: 'oscuro' o 'claro'
         
         # Create window with appropriate mode / Crear ventana con modo apropiado
         if self.fullscreen:
@@ -1494,12 +1497,12 @@ class Game:
                 self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
             else:
                 self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
         except pygame.error as e:
             # Fullscreen might fail in browser - fall back to windowed
             print(f"[Warning] Fullscreen toggle failed: {e}")
             self.fullscreen = False
-            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def toggle_audio(self):
         """
@@ -1509,7 +1512,7 @@ class Game:
         self.audio_enabled = not self.audio_enabled
         if not self.audio_enabled:
             pygame.mixer.stop()  # Stop all sounds / Detener todos los sonidos
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def toggle_language(self):
         """
@@ -1517,7 +1520,27 @@ class Game:
         Alternar entre inglés y español.
         """
         self.language = 'es' if self.language == 'en' else 'en'
-        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
+    
+    def toggle_theme(self):
+        """
+        Toggle between dark and light mode.
+        Alternar entre modo oscuro y claro.
+        """
+        self.theme = 'light' if self.theme == 'dark' else 'dark'
+        # Recreate base background with new theme
+        for y in range(SCREEN_HEIGHT):
+            t = y / SCREEN_HEIGHT
+            if self.theme == 'light':
+                r = int(195 - 20 * t)  # Light beige #C3B59F
+                g = int(181 - 20 * t)
+                b = int(159 - 20 * t)
+            else:
+                r = int(30 + 15 * t)  # Dark gray #1E1E24
+                g = int(30 + 15 * t)
+                b = int(36 + 20 * t)
+            pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
+        save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
     
     def _play_sound(self, sound):
         """
@@ -1739,15 +1762,21 @@ class Game:
         Create visual assets (background, vignette, scanlines, glow).
         Crear recursos visuales (fondo, viñeta, líneas de escaneo, brillo).
         """
-        # Create gradient background - DARK GRAY #1E1E24 as requested by user
-        # Crear fondo con gradiente - GRIS OSCURO #1E1E24 como solicitó el usuario
+        # Create gradient background based on theme / Crear fondo con gradiente según tema
+        # Dark mode: #1E1E24 (30,30,36), Light mode: #C3B59F (195,181,159)
         self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT  # Vertical position ratio / Ratio de posición vertical
-            # Start from #1E1E24 (30, 30, 36) at top → slightly lighter at bottom
-            r = int(30 + 15 * t)  # 30 → 45 dark gray
-            g = int(30 + 15 * t)  # 30 → 45
-            b = int(36 + 20 * t)  # 36 → 56 subtle blue tint
+            if self.theme == 'light':
+                # Light mode: Pastel beige #C3B59F
+                r = int(195 - 20 * t)  # 195 → 175 warm beige
+                g = int(181 - 20 * t)  # 181 → 161
+                b = int(159 - 20 * t)  # 159 → 139
+            else:
+                # Dark mode: Dark gray #1E1E24
+                r = int(30 + 15 * t)  # 30 → 45 dark gray
+                g = int(30 + 15 * t)  # 30 → 45
+                b = int(36 + 20 * t)  # 36 → 56 subtle blue tint
             pygame.draw.line(self.base_background, (r, g, b), (0, y), (SCREEN_WIDTH, y))
         
         # Create vignette effect (darkens edges) / Crear efecto viñeta (oscurece bordes)
@@ -2483,14 +2512,14 @@ class Game:
             self.t('2player'), cx, twoplay_y, twoplay_hovered, btn_scale, (238, 150, 75)
         )
         
-        # Multiplayer button - pastel orange #EB5E28 (235, 94, 40)
+        # Multiplayer button - pastel beige #C3B59F (195, 181, 159)
         mp_y = button_start_y + button_spacing
         mp_hovered = hasattr(self, '_mp_button_hover') and self._mp_button_hover
         mp_scale = self._get_button_scale('multiplayer', mp_hovered)
         if 'multiplayer' not in self.button_scales:
             self.button_scales['multiplayer'] = 1.0
         self._mp_button_rect = self._draw_modern_button(
-            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (235, 94, 40)
+            self.t('multiplayer'), cx, mp_y, mp_hovered, mp_scale, (195, 181, 159)
         )
         
         # Settings button - pastel pink #EFA9AE (239, 169, 174)
@@ -2557,11 +2586,28 @@ class Game:
         pygame.draw.rect(self.screen, (80, 120, 200, 120), lang_hit, 3, border_radius=12)
         self.screen.blit(lang_text, lang_rect)
         self._language_toggle_rect = lang_hit
-        toggle_y = 480
+        
+        # Theme toggle - Dark/Light mode selector
+        theme_y = 480
+        self.screen.blit(self.font.render(self.t('theme'), True, WHITE), self.font.render(self.t('theme'), True, WHITE).get_rect(center=(cx - 105, theme_y)))
+        theme_text = self.font.render(self.t('dark_mode') if self.theme == 'dark' else self.t('light_mode'), True, (195, 181, 159) if self.theme == 'light' else (100, 220, 255))
+        theme_rect = theme_text.get_rect(center=(cx + 120, theme_y))
+        theme_hit = pygame.Rect(theme_rect.left - 25, theme_rect.top - 10, theme_rect.width + 50, theme_rect.height + 20)
+        theme_hovered = self.settings_hover_item == "theme_toggle"
+        if theme_hovered:
+            glow = pygame.Surface((theme_hit.width, theme_hit.height), pygame.SRCALPHA)
+            pygame.draw.rect(glow, (195, 181, 159, 100) if self.theme == 'light' else (100, 220, 255, 100), glow.get_rect(), border_radius=12)
+            self.screen.blit(glow, theme_hit)
+        pygame.draw.rect(self.screen, (150, 140, 120, 120) if self.theme == 'light' else (80, 120, 200, 120), theme_hit, 3, border_radius=12)
+        self.screen.blit(theme_text, theme_rect)
+        self._theme_toggle_rect = theme_hit
+        
+        # HUD toggle - MOVED HIGHER to prevent back button overlap
+        toggle_y = 560  # Moved from 480 to 560
         self.screen.blit(self.font.render(self.t('hud'), True, WHITE), self.font.render(self.t('hud'), True, WHITE).get_rect(center=(cx - 80, toggle_y)))
         self._debug_toggle_rect = self._draw_toggle(cx + 120, toggle_y, self.show_debug_hud, self.settings_hover_item == "debug_toggle")
-        # Back button - NO EMOJI! Pastel pink #EFA9AE, higher position to avoid overlap
-        back_y = SCREEN_HEIGHT - 100  # Higher to prevent overlap
+        # Back button - NO EMOJI! Pastel pink #EFA9AE, at BOTTOM
+        back_y = SCREEN_HEIGHT - 60  # At bottom with proper spacing
         back_hovered = self.settings_hover_item == "back"
         back_scale = self._get_button_scale('settings_back', back_hovered)
         if 'settings_back' not in self.button_scales:
@@ -2972,9 +3018,9 @@ class Game:
         # Draw base gradient / Dibujar gradiente base
         self.screen.blit(self.base_background, (0, 0))
         
-        # Animated color tint / Tinte de color animado
+        # SUBTLE animated color tint - reduced alpha to show base background
         cycle = (math.sin(self.elapsed * 0.6) + 1) / 2
-        self._tint_surface.fill((int(30 + 120 * cycle), int(10 + 90 * (1 - cycle)), 180, 60))
+        self._tint_surface.fill((int(30 + 80 * cycle), int(10 + 60 * (1 - cycle)), 120, 20))  # Reduced alpha 60→20
         self.screen.blit(self._tint_surface, (0, 0), special_flags=pygame.BLEND_ADD)
         spacing = 40
         self.bg_offset = (self.bg_offset + 80 * self.dt) % spacing
@@ -2999,7 +3045,8 @@ class Game:
                 pygame.draw.line(self._sweep_surface, (200, 100, 255, alpha), (0, y), (SCREEN_WIDTH, y))
         sweep_y = int((math.sin(self.elapsed * 1.5) * 0.5 + 0.5) * (SCREEN_HEIGHT + sweep_height)) - sweep_height
         self.screen.blit(self._sweep_surface, (0, sweep_y), special_flags=pygame.BLEND_ADD)
-        glow_alpha = int(70 + 40 * math.sin(self.elapsed * 2))
+        # Reduced glow alpha to make background visible (70→40 base)
+        glow_alpha = int(40 + 30 * math.sin(self.elapsed * 2))
         self.center_glow.set_alpha(glow_alpha)
         self.screen.blit(self.center_glow, (0, 0), special_flags=pygame.BLEND_ADD)
         self.screen.blit(self.vignette, (0, 0))
@@ -3241,9 +3288,13 @@ class Game:
                             self.toggle_audio()
                         elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
                         elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
@@ -3384,7 +3435,7 @@ class Game:
                                         break
                             if target_idx is not None and target_idx != self.diff_index:
                                 self.diff_index = target_idx
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                             if target_idx is not None:
                                 self.menu_hover_index = target_idx
                     if self.state == "playing" and self._player_drag_rect().collidepoint(event.pos):
@@ -3413,6 +3464,8 @@ class Game:
                             self.settings_hover_item = "audio_toggle"
                         elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.settings_hover_item = "theme_toggle"
                         elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
                         elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
@@ -3440,11 +3493,11 @@ class Game:
                         if event.key in (pygame.K_UP, pygame.K_w):
                             self.diff_index = (self.diff_index - 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_DOWN, pygame.K_s):
                             self.diff_index = (self.diff_index + 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self._start_game()
                     elif self.state == "settings":
@@ -3459,7 +3512,7 @@ class Game:
                                 self.toggle_audio()
                             else:
                                 self.show_debug_hud = not self.show_debug_hud
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                     elif self.state == "diagnostics":
                         if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self.state = "menu"
@@ -3608,9 +3661,13 @@ class Game:
                             self.toggle_audio()
                         elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.toggle_language()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.toggle_theme()
                         elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.show_debug_hud = not self.show_debug_hud
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
                             self.state = "menu"
                             self.menu_phase = 0.0
@@ -3639,7 +3696,7 @@ class Game:
                                         break
                             if target_idx is not None and target_idx != self.diff_index:
                                 self.diff_index = target_idx
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                             if target_idx is not None:
                                 self.menu_hover_index = target_idx
                     if self.state == "playing" and self._player_drag_rect().collidepoint(event.pos):
@@ -3668,6 +3725,8 @@ class Game:
                             self.settings_hover_item = "audio_toggle"
                         elif hasattr(self, '_language_toggle_rect') and self._language_toggle_rect and self._language_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "language_toggle"
+                        elif hasattr(self, '_theme_toggle_rect') and self._theme_toggle_rect and self._theme_toggle_rect.collidepoint(event.pos):
+                            self.settings_hover_item = "theme_toggle"
                         elif hasattr(self, '_debug_toggle_rect') and self._debug_toggle_rect and self._debug_toggle_rect.collidepoint(event.pos):
                             self.settings_hover_item = "debug_toggle"
                         elif hasattr(self, '_back_button_rect') and self._back_button_rect and self._back_button_rect.collidepoint(event.pos):
@@ -3687,11 +3746,11 @@ class Game:
                         if event.key in (pygame.K_UP, pygame.K_w):
                             self.diff_index = (self.diff_index - 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_DOWN, pygame.K_s):
                             self.diff_index = (self.diff_index + 1) % len(self.difficulties)
                             self.menu_hover_index = self.diff_index
-                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                            save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                         elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self._start_game()
                     elif self.state == "settings":
@@ -3706,7 +3765,7 @@ class Game:
                                 self.toggle_audio()
                             else:
                                 self.show_debug_hud = not self.show_debug_hud
-                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language)
+                                save_settings(self.fullscreen, self.show_debug_hud, self.diff_index, self.audio_enabled, self.language, self.theme)
                     elif self.state == "diagnostics":
                         if event.key == pygame.K_ESCAPE or event.key in (pygame.K_SPACE, pygame.K_RETURN):
                             self.state = "menu"
@@ -3838,3 +3897,5 @@ if __name__ == "__main__":
 # License: Educational/Personal Use
 # Licencia: Uso Educacional/Personal
 # ============================================================================
+
+
