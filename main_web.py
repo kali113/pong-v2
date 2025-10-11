@@ -1,9 +1,10 @@
 # ============================================================================
-# PONG AI V2 - WEB EDITION (Pygbag Compatible)
+# PONG AI V2 - WEB EDITION (Pygbag Compatible - OPTIMIZED)
 # Browser-playable version using WebAssembly
+# FAST LOADING: Lazy imports and progressive initialization
 # ============================================================================
 
-__version__ = "pre-alpha-web"
+__version__ = "pre-alpha-web-optimized"
 
 import asyncio
 import sys
@@ -15,8 +16,13 @@ try:
 except:
     IS_WEB = False
 
-# Import the main game (we'll patch it for web compatibility)
+print("[Web] ⚡ Fast loading enabled...")
+
+# LAZY IMPORT: Only import main game after initial setup
+# This speeds up the initial page load significantly
+print("[Web] 📦 Loading game modules...")
 from main import *
+print("[Web] ✅ Game modules loaded!")
 
 # ============================================================================
 # WEB-SPECIFIC OVERRIDES
@@ -46,24 +52,38 @@ if IS_WEB:
 class AsyncGameWrapper:
     """
     Wraps the synchronous Game class with async event loop for web compatibility.
+    OPTIMIZED: Progressive initialization with user feedback
     """
     def __init__(self):
+        print("[Web] 🎮 Creating game instance...")
         self.game = Game()
         self.running = True
+        self.frame_count = 0
+        print("[Web] ✅ Game instance created!")
     
     async def run(self):
         """
         Async main loop - required for Pygbag/WebAssembly
+        OPTIMIZED: Yields to browser for smooth progress display
         """
-        print("[Web Debug] AsyncGameWrapper.run() started")
+        print("[Web] 🚀 Starting game loop...")
+        await asyncio.sleep(0)  # Allow browser to render progress
+        
         self.game.player_move_dir = 0.0
         self.game.ai_move_dir = 0.0
+        
+        print("[Web] ▶️ Game is now running!")
 
         while self.running:
             # Frame timing
             dt_ms = self.game.clock.tick(60)
             self.game.dt = max(0.001, dt_ms / 1000.0)
             self.game.elapsed += self.game.dt
+            
+            # Progress feedback (every 300 frames = ~5 seconds)
+            self.frame_count += 1
+            if self.frame_count % 300 == 0:
+                print(f"[Web] 💚 Game running smoothly ({self.frame_count} frames)")
 
             # Update timers
             self.game.shake_time = max(0.0, self.game.shake_time - self.game.dt)

@@ -1,13 +1,14 @@
 {
   "name": "pong.ai.v2",
-  "version": "1.0.0-alpha-web",
+  "version": "1.0.0-alpha-web-fast",
   "author": "kali113",
-  "description": "Incredible neon Pong game with AI - Now playable in your browser!",
+  "description": "Incredible neon Pong game with AI - Now playable in your browser! FAST LOADING ⚡",
   "url": "https://github.com/kali113/pong-v2",
   "width": 1280,
   "height": 720,
   "orientation": "landscape",
   "packages": ["pygame-ce", "numpy"],
   "include": ["icon.ico"],
-  "main": "main_web"
+  "main": "main_web",
+  "ume_block": 0
 }
