@@ -1,5 +1,5 @@
 {
-  "name": "PongAI-Neon",
+  "name": "pong.ai.v2",
   "version": "1.0.0-alpha-web",
   "author": "kali113",
   "description": "Incredible neon Pong game with AI - Now playable in your browser!",
@@ -9,5 +9,5 @@
   "orientation": "landscape",
   "packages": ["pygame-ce", "numpy"],
   "include": ["icon.ico"],
-  "main": "main"
+  "main": "main_web"
 }

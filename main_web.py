@@ -3,7 +3,7 @@
 # Browser-playable version using WebAssembly
 # ============================================================================
 
-__version__ = "1.0.0-pre-alpha-web"
+__version__ = "pre-alpha-web"
 
 import asyncio
 import sys
@@ -245,6 +245,7 @@ class AsyncGameWrapper:
                     self.game.menu_hover_index = self.game.diff_index
                     save_settings(self.game.fullscreen, self.game.show_debug_hud, self.game.diff_index, self.game.audio_enabled, self.game.language, self.game.theme)
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                    self.game.game_mode = "single"  # Set to single player mode
                     self.game._start_game()
             elif self.game.state == "settings":
                 if event.key == pygame.K_ESCAPE:

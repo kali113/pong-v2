@@ -50,9 +50,17 @@ try:
 except:
     IS_WEB = False
 
+# Ensure virtual home directory in web builds so libraries avoid unsupported paths
+if IS_WEB:
+    os.environ.setdefault("HOME", "/tmp")
+    os.environ.setdefault("USERPROFILE", "/tmp")
+
 # Settings file location / Ubicación del archivo de configuración
-# Stored in user's home directory / Almacenado en el directorio personal del usuario
-SETTINGS_FILE = Path.home() / '.pong_ai_settings.json'
+# Stored in user's home directory (desktop only) / Almacenado en el directorio personal (solo escritorio)
+try:
+    SETTINGS_FILE = Path.home() / '.pong_ai_settings.json' if not IS_WEB else None
+except:
+    SETTINGS_FILE = None  # Web mode or filesystem unavailable / Modo web o sistema de archivos no disponible
 # ============================================================================
 # TRANSLATION SYSTEM / SISTEMA DE TRADUCCIÓN
 # All UI text in English and Spanish / Todo el texto de UI en Inglés y Español
@@ -99,15 +107,15 @@ TRANSLATIONS = {
 
 def load_settings():
     """
-    Load user settings from JSON file.
-    Cargar configuración del usuario desde archivo JSON.
+    Load user settings from JSON file (desktop) or return defaults (web).
+    Cargar configuración del usuario desde archivo JSON (escritorio) o retornar valores por defecto (web).
     
     Returns / Retorna:
         dict: Settings dictionary with fullscreen, difficulty, audio, language
               Diccionario de configuración con pantalla completa, dificultad, audio, idioma
     """
     try:
-        if SETTINGS_FILE.exists():
+        if SETTINGS_FILE is not None and SETTINGS_FILE.exists():
             with open(SETTINGS_FILE, 'r') as f:
                 data = json.load(f)
                 if isinstance(data, dict):
@@ -115,11 +123,11 @@ def load_settings():
                     data.setdefault('audio_enabled', True)
                     data.setdefault('language', 'en')
                     return data
-    except (json.JSONDecodeError, IOError, ValueError):
-        pass  # Invalid or corrupted settings file / Archivo inválido o corrupto
+    except (json.JSONDecodeError, IOError, ValueError, AttributeError):
+        pass  # Invalid or corrupted settings file, or web mode / Archivo inválido o corrupto, o modo web
     
-    # Return default settings if file missing/corrupted
-    # Retornar configuración por defecto si archivo falta/está corrupto
+    # Return default settings if file missing/corrupted or in web mode
+    # Retornar configuración por defecto si archivo falta/está corrupto o en modo web
     return {
         'fullscreen': False,  # Windowed mode / Modo ventana
         'debug_hud': False,   # Performance overlay off / Overlay de rendimiento desactivado
@@ -131,8 +139,8 @@ def load_settings():
 
 def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en', theme='dark'):
     """
-    Save user settings to JSON file.
-    Guardar configuración del usuario en archivo JSON.
+    Save user settings to JSON file (desktop only, no-op in web).
+    Guardar configuración del usuario en archivo JSON (solo escritorio, no-op en web).
     
     Args / Argumentos:
         fullscreen (bool): Fullscreen mode enabled / Modo pantalla completa activado
@@ -142,6 +150,8 @@ def save_settings(fullscreen, debug_hud, difficulty, audio_enabled, language='en
         audio_enabled (bool): Sound effects enabled / Efectos de sonido activados
         language (str): UI language code ('en' or 'es') / Código de idioma ('en' o 'es')
     """
+    if SETTINGS_FILE is None:
+        return  # Web mode - settings persistence not available / Modo web - persistencia no disponible
     try:
         with open(SETTINGS_FILE, 'w') as f:
             json.dump({
@@ -1327,8 +1337,22 @@ class Game:
         self.language = saved.get('language', 'en')
         self.theme = saved.get('theme', 'dark')  # Theme: 'dark' or 'light' / Tema: 'oscuro' o 'claro'
         
+        # Detect if running in web/browser environment
+        try:
+            import platform
+            IS_WEB_ENV = platform.system() == "Emscripten"
+        except:
+            IS_WEB_ENV = False
+        
         # Create window with appropriate mode / Crear ventana con modo apropiado
-        if self.fullscreen:
+        if IS_WEB_ENV:
+            # In web mode, use existing display created by pygbag
+            # En modo web, usar pantalla existente creada por pygbag
+            self.screen = pygame.display.get_surface()
+            if self.screen is None:
+                # Fallback: create display if not already initialized
+                self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        elif self.fullscreen:
             # SCALED mode maintains aspect ratio in fullscreen
             # Modo SCALED mantiene la proporción en pantalla completa
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN | pygame.SCALED | pygame.DOUBLEBUF, vsync=1)
@@ -1336,25 +1360,28 @@ class Game:
             # Hardware surface for better performance in windowed mode
             # Superficie de hardware para mejor rendimiento en modo ventana
             self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.HWSURFACE, vsync=1)
-        pygame.display.set_caption("Pong AI - Incredible Edition")
         
-        # Set window icon (32x32 colorful pong scene) / Configurar ícono de ventana (escena pong colorida 32x32)
-        icon = create_window_icon()
-        pygame.display.set_icon(icon)
-        
-        # Save icon as .ico file for Windows taskbar (requires PIL/Pillow)
-        # Guardar ícono como archivo .ico para barra de tareas de Windows (requiere PIL/Pillow)
-        try:
-            from PIL import Image
-            icon_path = Path(__file__).parent / 'icon.ico'
-            # Convert pygame surface to PIL Image / Convertir superficie pygame a imagen PIL
-            icon_str = pygame.image.tostring(icon, 'RGBA')
-            pil_icon = Image.frombytes('RGBA', icon.get_size(), icon_str)
-            pil_icon.save(str(icon_path), format='ICO', sizes=[(32, 32)])
-        except Exception:
-            # PIL not installed or error during conversion - not critical
-            # PIL no instalado o error durante conversión - no crítico
-            pass
+        if not IS_WEB_ENV:
+            pygame.display.set_caption("Pong AI - Incredible Edition")
+            
+            # Set window icon (32x32 colorful pong scene) - Desktop only
+            # Configurar ícono de ventana (escena pong colorida 32x32) - Solo escritorio
+            icon = create_window_icon()
+            pygame.display.set_icon(icon)
+            
+            # Save icon as .ico file for Windows taskbar (requires PIL/Pillow)
+            # Guardar ícono como archivo .ico para barra de tareas de Windows (requiere PIL/Pillow)
+            try:
+                from PIL import Image
+                icon_path = Path(__file__).parent / 'icon.ico'
+                # Convert pygame surface to PIL Image / Convertir superficie pygame a imagen PIL
+                icon_str = pygame.image.tostring(icon, 'RGBA')
+                pil_icon = Image.frombytes('RGBA', icon.get_size(), icon_str)
+                pil_icon.save(str(icon_path), format='ICO', sizes=[(32, 32)])
+            except Exception:
+                # PIL not installed or error during conversion - not critical
+                # PIL no instalado o error durante conversión - no crítico
+                pass
         
         # Create pixel art title logo for menu / Crear logo pixel art para menú
         self.title_logo = create_title_logo()
@@ -1775,15 +1802,15 @@ class Game:
         Crear recursos visuales (fondo, viñeta, líneas de escaneo, brillo).
         """
         # Create gradient background based on theme / Crear fondo con gradiente según tema
-        # Dark mode: #1E1E24 (30,30,36), Light mode: #C3B59F (195,181,159)
+        # Dark mode: #1E1E24 (30,30,36), Light mode: #8B7E74 (139,126,116)
         self.base_background = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
         for y in range(SCREEN_HEIGHT):
             t = y / SCREEN_HEIGHT  # Vertical position ratio / Ratio de posición vertical
             if self.theme == 'light':
-                # Light mode: Pastel beige #C3B59F
-                r = int(195 - 20 * t)  # 195 → 175 warm beige
-                g = int(181 - 20 * t)  # 181 → 161
-                b = int(159 - 20 * t)  # 159 → 139
+                # Light mode: Darker gray-brown #8B7E74 for better contrast
+                r = int(139 - 25 * t)  # 139 → 114
+                g = int(126 - 22 * t)  # 126 → 104
+                b = int(116 - 20 * t)  # 116 → 96
             else:
                 # Dark mode: Dark gray #1E1E24
                 r = int(30 + 15 * t)  # 30 → 45 dark gray
