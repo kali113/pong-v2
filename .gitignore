@@ -23,6 +23,15 @@ dist/
 *.swo
 *~
 
+# Node / MCP tools
+node_modules/
+.playwright-mcp/
+.serena/
+.agents/
+
+# Local environment files
+.env
+
 # Local VS Code Insiders / user files that may contain secrets
 vscode-userdata/
 

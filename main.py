@@ -2314,7 +2314,7 @@ class Game:
         btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
         
         # SUBTLE background - barely visible, not a harsh box
-        bg_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        gradient_surf = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
         if hovered:
             # Soft colored tint when hovered
             base_alpha = 80
@@ -2324,17 +2324,21 @@ class Game:
                 g = int(glow_color[1] * (0.2 + 0.15 * t))
                 b = int(glow_color[2] * (0.3 + 0.2 * t))
                 alpha = base_alpha + int(20 * t)
-                pygame.draw.line(bg_surf, (r, g, b, alpha), (0, i), (btn_w, i))
+                pygame.draw.line(gradient_surf, (r, g, b, alpha), (0, i), (btn_w, i))
         else:
             # Very subtle dark background - almost invisible
             for i in range(btn_h):
                 t = i / btn_h
                 gray = 25 + int(15 * t)
                 alpha = 120 + int(30 * t)
-                pygame.draw.line(bg_surf, (gray, gray + 5, gray + 15, alpha), (0, i), (btn_w, i))
+                pygame.draw.line(gradient_surf, (gray, gray + 5, gray + 15, alpha), (0, i), (btn_w, i))
         
-        # Rounded corners for softness
-        pygame.draw.rect(bg_surf, (0, 0, 0, 0), bg_surf.get_rect(), border_radius=12)
+        # Apply rounded mask to guarantee the dark overlay matches button radius
+        mask = pygame.Surface((btn_w, btn_h), pygame.SRCALPHA)
+        mask.fill((0, 0, 0, 0))
+        pygame.draw.rect(mask, (255, 255, 255, 255), mask.get_rect(), border_radius=12)
+        bg_surf = mask.copy()
+        bg_surf.blit(gradient_surf, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
         self.screen.blit(bg_surf, (btn_x, btn_y))
         
         # Soft pastel glow when hovered - beautiful and subtle
