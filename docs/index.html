@@ -166,6 +166,17 @@
             }
         }
     </style>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        // Register Service Worker for faster subsequent loads
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/pong-v2/service-worker.js')
+                    .then(reg => console.log('✅ Service Worker registered:', reg))
+                    .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -214,7 +225,7 @@
         </div>
         
         <div class="cta">
-            <a href="game/index.html" class="btn btn-primary">🎮 Play in Browser</a>
+            <a href="loading.html" class="btn btn-primary">⚡ Play Now (Fast Loading)</a>
             <a href="https://github.com/kali113/pong-v2/releases" class="btn btn-primary">📥 Download</a>
             <a href="https://github.com/kali113/pong-v2" class="btn btn-secondary">⭐ View on GitHub</a>
         </div>

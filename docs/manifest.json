@@ -1,0 +1,30 @@
+{
+  "name": "Pong AI V2",
+  "short_name": "Pong AI",
+  "description": "Incredible neon Pong game with AI opponent - now playable offline!",
+  "start_url": "/pong-v2/",
+  "display": "standalone",
+  "background_color": "#0a0e27",
+  "theme_color": "#00ff88",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "game/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "game/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "screenshots": [
+    {
+      "src": "game/favicon.png",
+      "sizes": "1280x720",
+      "type": "image/png"
+    }
+  ]
+}
